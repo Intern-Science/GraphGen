@@ -15,6 +15,8 @@ authors:
   given-names: "Huanjun"
 - family-names: "Dong"
   given-names: "Nanqing"
+- family-names: "Nikhil"
+  given-names: "Nikhil Kumar"
 title: "GraphGen"
 date-released: 2025-04-21
 url: "https://github.com/open-sciencelab/GraphGen"

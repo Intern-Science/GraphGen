@@ -22,6 +22,7 @@ class TraverseStrategy(BaseStrategy):
     # 孤立节点的处理策略
     isolated_node_strategy: str = "add" # "add" or "ignore"
     loss_strategy: str = "only_edge"  # only_edge, both
+    difficulty_order: tuple[str] = ('easy', 'medium', 'hard')  # 难度顺序
 
     def to_yaml(self):
         strategy_dict = {}

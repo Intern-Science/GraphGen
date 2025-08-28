@@ -5,12 +5,13 @@ import tempfile
 
 import gradio as gr
 import pandas as pd
-from base import GraphGenParams
-from cache_utils import cleanup_workspace, setup_workspace
-from count_tokens import count_tokens
 from gradio_i18n import Translate
 from gradio_i18n import gettext as _
-from test_api import test_api_connection
+
+from webui.base import GraphGenParams
+from webui.cache_utils import cleanup_workspace, setup_workspace
+from webui.count_tokens import count_tokens
+from webui.test_api import test_api_connection
 
 # pylint: disable=wrong-import-position
 root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

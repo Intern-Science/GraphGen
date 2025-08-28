@@ -9,7 +9,7 @@ python_version: "3.10"
 app_file: webui/app.py
 suggested_hardware: cpu-basic
 pinned: false
-short_description: "Interactive knowledge-driven synthetic data generation demo powered by GraphGen & Gradio"
+short_description: "Knowledge-driven synthetic data generation demo"
 tags:
   - synthetic-data
   - knowledge-graph

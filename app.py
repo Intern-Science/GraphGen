@@ -8,6 +8,10 @@ import gradio as gr
 import pandas as pd
 from dotenv import load_dotenv
 
+from graphgen.graphgen import GraphGen
+from graphgen.models import OpenAIModel, Tokenizer
+from graphgen.models.llm.limitter import RPM, TPM
+from graphgen.utils import set_logger
 from webui.base import GraphGenParams
 from webui.cache_utils import cleanup_workspace, setup_workspace
 from webui.count_tokens import count_tokens
@@ -15,15 +19,9 @@ from webui.i18n import Translate
 from webui.i18n import gettext as _
 from webui.test_api import test_api_connection
 
-# pylint: disable=wrong-import-position
-# root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 root_dir = files("webui").parent
 sys.path.append(root_dir)
 
-from graphgen.graphgen import GraphGen
-from graphgen.models import OpenAIModel, Tokenizer
-from graphgen.models.llm.limitter import RPM, TPM
-from graphgen.utils import set_logger
 
 load_dotenv()
 

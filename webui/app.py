@@ -2,6 +2,7 @@ import json
 import os
 import sys
 import tempfile
+from importlib.resources import files
 
 import gradio as gr
 import pandas as pd
@@ -15,7 +16,8 @@ from webui.i18n import gettext as _
 from webui.test_api import test_api_connection
 
 # pylint: disable=wrong-import-position
-root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+root_dir = files("webui").parent
 sys.path.append(root_dir)
 
 from graphgen.graphgen import GraphGen

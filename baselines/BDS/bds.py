@@ -9,7 +9,7 @@ import networkx as nx
 from dotenv import load_dotenv
 from tqdm.asyncio import tqdm as tqdm_async
 
-from graphgen.models import NetworkXStorage, OpenAIModel
+from graphgen.models import NetworkXStorage, OpenAIModel, Tokenizer
 from graphgen.utils import create_event_loop
 
 QA_GENERATION_PROMPT = """
@@ -102,10 +102,14 @@ if __name__ == "__main__":
 
     load_dotenv()
 
+    tokenizer_instance: Tokenizer = Tokenizer(
+        model_name=os.getenv("TOKENIZER_MODEL", "cl100k_base")
+    )
     llm_client = OpenAIModel(
         model_name=os.getenv("SYNTHESIZER_MODEL"),
         api_key=os.getenv("SYNTHESIZER_API_KEY"),
         base_url=os.getenv("SYNTHESIZER_BASE_URL"),
+        tokenizer_instance=tokenizer_instance,
     )
     bds = BDS(llm_client=llm_client)
 

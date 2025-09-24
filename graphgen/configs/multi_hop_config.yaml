@@ -1,4 +1,8 @@
-input_file: resources/input_examples/csv_demo.csv # input file path, support json, jsonl, txt. See resources/input_examples for examples
+read:
+  input_file: resources/input_examples/csv_demo.csv # input file path, support json, jsonl, txt. See resources/input_examples for examples
+split:
+  chunk_size: 1024 # chunk size for text splitting
+  chunk_overlap: 100 # chunk overlap for text splitting
 output_data_type: multi_hop # atomic, aggregated, multi_hop, cot
 output_data_format: ChatML # Alpaca, Sharegpt, ChatML
 tokenizer: cl100k_base # tokenizer for counting tokens, support tiktoken tokenizer names and local tokenizer path

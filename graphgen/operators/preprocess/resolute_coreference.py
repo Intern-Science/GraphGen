@@ -1,6 +1,7 @@
 from typing import List
 
-from graphgen.models import Chunk, OpenAIModel
+from graphgen.bases.datatypes import Chunk
+from graphgen.models import OpenAIModel
 from graphgen.templates import COREFERENCE_RESOLUTION_PROMPT
 from graphgen.utils import detect_main_language
 

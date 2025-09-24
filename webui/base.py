@@ -3,7 +3,7 @@ from typing import Any
 
 
 @dataclass
-class GraphGenParams:
+class WebuiParams:
     """
     GraphGen parameters
     """
@@ -26,6 +26,7 @@ class GraphGenParams:
     trainee_model: str
     api_key: str
     chunk_size: int
+    chunk_overlap: int
     rpm: int
     tpm: int
     quiz_samples: int

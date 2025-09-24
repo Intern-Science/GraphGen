@@ -1,6 +1,8 @@
 from dataclasses import dataclass
+
 from tqdm import tqdm
-from graphgen.models.text.text_pair import TextPair
+
+from graphgen.bases.datatypes import QAPair
 
 
 @dataclass
@@ -9,19 +11,22 @@ class RewardEvaluator:
     Reward Model Evaluator.
     OpenAssistant/reward-model-deberta-v3-large-v2: 分数范围为[-inf, inf]，越高越好
     """
+
     reward_name: str = "OpenAssistant/reward-model-deberta-v3-large-v2"
     max_length: int = 2560
     results: list[float] = None
 
     def __post_init__(self):
         import torch
+
         self.num_gpus = torch.cuda.device_count()
 
     @staticmethod
     def process_chunk(rank, pairs, reward_name, max_length, return_dict):
         import torch
         from transformers import AutoModelForSequenceClassification, AutoTokenizer
-        device = f'cuda:{rank}'
+
+        device = f"cuda:{rank}"
         torch.cuda.set_device(rank)
 
         rank_model = AutoModelForSequenceClassification.from_pretrained(reward_name)
@@ -37,7 +42,7 @@ class RewardEvaluator:
                     pair.answer,
                     return_tensors="pt",
                     max_length=max_length,
-                    truncation=True
+                    truncation=True,
                 )
                 inputs = {k: v.to(device) for k, v in inputs.items()}
                 score = rank_model(**inputs).logits[0].item()
@@ -45,8 +50,9 @@ class RewardEvaluator:
 
         return_dict[rank] = results
 
-    def evaluate(self, pairs: list[TextPair]) -> list[float]:
+    def evaluate(self, pairs: list[QAPair]) -> list[float]:
         import torch.multiprocessing as mp
+
         chunk_size = len(pairs) // self.num_gpus
         chunks = []
         for i in range(self.num_gpus):
@@ -64,7 +70,7 @@ class RewardEvaluator:
         for rank, chunk in enumerate(chunks):
             p = mp.Process(
                 target=self.process_chunk,
-                args=(rank, chunk, self.reward_name, self.max_length, return_dict)
+                args=(rank, chunk, self.reward_name, self.max_length, return_dict),
             )
             p.start()
             processes.append(p)
@@ -84,7 +90,7 @@ class RewardEvaluator:
 
         return results
 
-    def get_average_score(self, pairs: list[TextPair]) -> float:
+    def get_average_score(self, pairs: list[QAPair]) -> float:
         """
         Get the average score of a batch of texts.
         """
@@ -92,7 +98,7 @@ class RewardEvaluator:
         self.results = results
         return sum(self.results) / len(pairs)
 
-    def get_min_max_score(self, pairs: list[TextPair]) -> tuple[float, float]:
+    def get_min_max_score(self, pairs: list[QAPair]) -> tuple[float, float]:
         """
         Get the min and max score of a batch of texts.
         """

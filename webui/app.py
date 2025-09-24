@@ -12,7 +12,7 @@ from graphgen.graphgen import GraphGen
 from graphgen.models import OpenAIModel, Tokenizer
 from graphgen.models.llm.limitter import RPM, TPM
 from graphgen.utils import set_logger
-from webui.base import GraphGenParams
+from webui.base import WebuiParams
 from webui.cache_utils import cleanup_workspace, setup_workspace
 from webui.count_tokens import count_tokens
 from webui.i18n import Translate
@@ -66,13 +66,19 @@ def init_graph_gen(config: dict, env: dict) -> GraphGen:
 
 
 # pylint: disable=too-many-statements
-def run_graphgen(params, progress=gr.Progress()):
+def run_graphgen(params: WebuiParams, progress=gr.Progress()):
     def sum_tokens(client):
         return sum(u["total_tokens"] for u in client.token_usage)
 
     config = {
         "if_trainee_model": params.if_trainee_model,
-        "input_file": params.input_file,
+        "read": {
+            "input_file": params.input_file,
+        },
+        "split": {
+            "chunk_size": params.chunk_size,
+            "chunk_overlap": params.chunk_overlap,
+        },
         "output_data_type": params.output_data_type,
         "output_data_format": params.output_data_format,
         "tokenizer": params.tokenizer,
@@ -91,7 +97,6 @@ def run_graphgen(params, progress=gr.Progress()):
             "isolated_node_strategy": params.isolated_node_strategy,
             "loss_strategy": params.loss_strategy,
         },
-        "chunk_size": params.chunk_size,
     }
 
     env = {
@@ -284,8 +289,16 @@ with gr.Blocks(title="GraphGen Demo", theme=gr.themes.Glass(), css=css) as demo:
                 label="Chunk Size",
                 minimum=256,
                 maximum=4096,
-                value=512,
+                value=1024,
                 step=256,
+                interactive=True,
+            )
+            chunk_overlap = gr.Slider(
+                label="Chunk Overlap",
+                minimum=0,
+                maximum=500,
+                value=100,
+                step=100,
                 interactive=True,
             )
             tokenizer = gr.Textbox(
@@ -499,7 +512,7 @@ with gr.Blocks(title="GraphGen Demo", theme=gr.themes.Glass(), css=css) as demo:
 
         submit_btn.click(
             lambda *args: run_graphgen(
-                GraphGenParams(
+                WebuiParams(
                     if_trainee_model=args[0],
                     input_file=args[1],
                     tokenizer=args[2],
@@ -518,12 +531,13 @@ with gr.Blocks(title="GraphGen Demo", theme=gr.themes.Glass(), css=css) as demo:
                     trainee_model=args[15],
                     api_key=args[16],
                     chunk_size=args[17],
-                    rpm=args[18],
-                    tpm=args[19],
-                    quiz_samples=args[20],
-                    trainee_url=args[21],
-                    trainee_api_key=args[22],
-                    token_counter=args[23],
+                    chunk_overlap=args[18],
+                    rpm=args[19],
+                    tpm=args[20],
+                    quiz_samples=args[21],
+                    trainee_url=args[22],
+                    trainee_api_key=args[23],
+                    token_counter=args[24],
                 )
             ),
             inputs=[
@@ -545,6 +559,7 @@ with gr.Blocks(title="GraphGen Demo", theme=gr.themes.Glass(), css=css) as demo:
                 trainee_model,
                 api_key,
                 chunk_size,
+                chunk_overlap,
                 rpm,
                 tpm,
                 quiz_samples,

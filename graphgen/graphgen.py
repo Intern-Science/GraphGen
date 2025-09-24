@@ -8,8 +8,8 @@ import gradio as gr
 from tqdm.asyncio import tqdm as tqdm_async
 
 from graphgen.bases.base_storage import StorageNameSpace
+from graphgen.bases.datatypes import Chunk
 from graphgen.models import (
-    Chunk,
     JsonKVStorage,
     JsonListStorage,
     NetworkXStorage,
@@ -17,6 +17,7 @@ from graphgen.models import (
     Tokenizer,
     TraverseStrategy,
     read_file,
+    split_chunks,
 )
 
 from .operators import (
@@ -32,6 +33,7 @@ from .operators import (
 from .utils import (
     compute_content_hash,
     create_event_loop,
+    detect_main_language,
     format_generation_results,
     logger,
 )
@@ -49,11 +51,6 @@ class GraphGen:
     tokenizer_instance: Tokenizer = None
     synthesizer_llm_client: OpenAIModel = None
     trainee_llm_client: OpenAIModel = None
-
-    # text chunking
-    # TODO: make it configurable
-    chunk_size: int = 1024
-    chunk_overlap_size: int = 100
 
     # search
     search_config: dict = field(
@@ -136,14 +133,22 @@ class GraphGen:
         async for doc_key, doc in tqdm_async(
             new_docs.items(), desc="[1/4]Chunking documents", unit="doc"
         ):
+            doc_language = detect_main_language(doc["content"])
+            text_chunks = split_chunks(
+                doc["content"],
+                language=doc_language,
+                chunk_size=self.config["split"]["chunk_size"],
+                chunk_overlap=self.config["split"]["chunk_overlap"],
+            )
+
             chunks = {
-                compute_content_hash(dp["content"], prefix="chunk-"): {
-                    **dp,
+                compute_content_hash(txt, prefix="chunk-"): {
+                    "content": txt,
                     "full_doc_id": doc_key,
+                    "length": len(self.tokenizer_instance.encode_string(txt)),
+                    "language": doc_language,
                 }
-                for dp in self.tokenizer_instance.chunk_by_token_size(
-                    doc["content"], self.chunk_overlap_size, self.chunk_size
-                )
+                for txt in text_chunks
             }
             inserting_chunks.update(chunks)
 
@@ -171,7 +176,7 @@ class GraphGen:
         insert chunks into the graph
         """
 
-        input_file = self.config["input_file"]
+        input_file = self.config["read"]["input_file"]
         data = read_file(input_file)
         inserting_chunks = await self.async_split_chunks(data)
 

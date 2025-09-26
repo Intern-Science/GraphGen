@@ -13,11 +13,10 @@ from graphgen.models import OpenAIModel, Tokenizer
 from graphgen.models.llm.limitter import RPM, TPM
 from graphgen.utils import set_logger
 from webui.base import WebuiParams
-from webui.cache_utils import cleanup_workspace, setup_workspace
-from webui.count_tokens import count_tokens
 from webui.i18n import Translate
 from webui.i18n import gettext as _
 from webui.test_api import test_api_connection
+from webui.utils import cleanup_workspace, count_tokens, preview_file, setup_workspace
 
 root_dir = files("webui").parent
 sys.path.append(root_dir)
@@ -391,6 +390,58 @@ with gr.Blocks(title="GraphGen Demo", theme=gr.themes.Glass(), css=css) as demo:
             with gr.Column(scale=1):
                 test_connection_btn = gr.Button(_("Test Connection"))
 
+        with gr.Row(equal_height=True):
+            with gr.Column(scale=1):
+                with gr.Blocks():
+                    with gr.Row(equal_height=True):
+                        with gr.Column(scale=1):
+                            upload_file = gr.File(
+                                label=_("Upload File"),
+                                file_count="single",
+                                file_types=[".txt", ".json", ".jsonl", ".csv"],
+                                interactive=True,
+                            )
+                            examples_dir = os.path.join(root_dir, "webui", "examples")
+                            gr.Examples(
+                                examples=[
+                                    [os.path.join(examples_dir, "txt_demo.txt")],
+                                    [os.path.join(examples_dir, "jsonl_demo.jsonl")],
+                                    [os.path.join(examples_dir, "json_demo.json")],
+                                    [os.path.join(examples_dir, "csv_demo.csv")],
+                                ],
+                                inputs=upload_file,
+                                label=_("Example Files"),
+                                examples_per_page=4,
+                            )
+            with gr.Column(scale=1):
+                with gr.Blocks():
+                    preview_code = gr.Code(
+                        label=_("File Preview"),
+                        interactive=False,
+                        visible=True,
+                        elem_id="preview_code",
+                    )
+                    preview_df = gr.DataFrame(
+                        label=_("File Preview"),
+                        interactive=False,
+                        visible=False,
+                        elem_id="preview_df",
+                    )
+
+        with gr.Blocks():
+            token_counter = gr.DataFrame(
+                label="Token Stats",
+                headers=[
+                    "Source Text Token Count",
+                    "Estimated Token Usage",
+                    "Token Used",
+                ],
+                datatype="str",
+                interactive=False,
+                visible=False,
+                wrap=True,
+            )
+
         with gr.Blocks():
             with gr.Row(equal_height=True):
                 with gr.Column():
@@ -415,46 +466,12 @@ with gr.Blocks(title="GraphGen Demo", theme=gr.themes.Glass(), css=css) as demo:
                     )
 
         with gr.Blocks():
-            with gr.Row(equal_height=True):
-                with gr.Column(scale=1):
-                    upload_file = gr.File(
-                        label=_("Upload File"),
-                        file_count="single",
-                        file_types=[".txt", ".json", ".jsonl", ".csv"],
-                        interactive=True,
-                    )
-                    examples_dir = os.path.join(root_dir, "webui", "examples")
-                    gr.Examples(
-                        examples=[
-                            [os.path.join(examples_dir, "txt_demo.txt")],
-                            [os.path.join(examples_dir, "jsonl_demo.jsonl")],
-                            [os.path.join(examples_dir, "json_demo.json")],
-                            [os.path.join(examples_dir, "csv_demo.csv")],
-                        ],
-                        inputs=upload_file,
-                        label=_("Example Files"),
-                        examples_per_page=4,
-                    )
-                with gr.Column(scale=1):
-                    output = gr.File(
-                        label="Output(See Github FAQ)",
-                        file_count="single",
-                        interactive=False,
-                    )
-
-        with gr.Blocks():
-            token_counter = gr.DataFrame(
-                label="Token Stats",
-                headers=[
-                    "Source Text Token Count",
-                    "Estimated Token Usage",
-                    "Token Used",
-                ],
-                datatype="str",
-                interactive=False,
-                visible=False,
-                wrap=True,
-            )
+            with gr.Column(scale=1):
+                output = gr.File(
+                    label=_("Output File"),
+                    file_count="single",
+                    interactive=False,
+                )
 
         submit_btn = gr.Button(_("Run GraphGen"))
 
@@ -494,13 +511,13 @@ with gr.Blocks(title="GraphGen Demo", theme=gr.themes.Glass(), css=css) as demo:
         )
 
         upload_file.change(
-            lambda x: (gr.update(visible=True)),
-            inputs=[upload_file],
-            outputs=[token_counter],
+            preview_file, inputs=upload_file, outputs=[preview_code, preview_df]
+        ).then(
+            lambda x: gr.update(visible=True), inputs=upload_file, outputs=token_counter
         ).then(
             count_tokens,
             inputs=[upload_file, tokenizer, token_counter],
-            outputs=[token_counter],
+            outputs=token_counter,
         )
 
         # run GraphGen

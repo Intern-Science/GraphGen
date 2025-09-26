@@ -3,12 +3,12 @@ read:
 split:
   chunk_size: 1024 # chunk size for text splitting
   chunk_overlap: 100 # chunk overlap for text splitting
-output_data_type: atomic # atomic, aggregated, multi_hop, cot
-output_data_format: Alpaca # Alpaca, Sharegpt, ChatML
-tokenizer: cl100k_base # tokenizer for counting tokens, support tiktoken tokenizer names and local tokenizer path
 search: # web search configuration
   enabled: false # whether to enable web search
   search_types: ["google"] # search engine types, support: google, bing, uniprot, wikipedia
+output_data_type: atomic # atomic, aggregated, multi_hop, cot
+output_data_format: Alpaca # Alpaca, Sharegpt, ChatML
+tokenizer: cl100k_base # tokenizer for counting tokens, support tiktoken tokenizer names and local tokenizer path
 quiz_and_judge_strategy: # quiz and test whether the LLM masters the knowledge points
   enabled: true
   quiz_samples: 2 # number of quiz samples to generate

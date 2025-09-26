@@ -1,6 +1,7 @@
 import os
-import uuid
 import shutil
+import uuid
+
 
 def setup_workspace(folder):
     request_id = str(uuid.uuid4())

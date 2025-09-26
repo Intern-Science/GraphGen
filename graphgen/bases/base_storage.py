@@ -1,8 +1,6 @@
 from dataclasses import dataclass
 from typing import Generic, TypeVar, Union
 
-from graphgen.models.embed.embedding import EmbeddingFunc
-
 T = TypeVar("T")
 
 
@@ -62,8 +60,6 @@ class BaseKVStorage(Generic[T], StorageNameSpace):
 
 @dataclass
 class BaseGraphStorage(StorageNameSpace):
-    embedding_func: EmbeddingFunc = None
-
     async def has_node(self, node_id: str) -> bool:
         raise NotImplementedError
 

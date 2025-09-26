@@ -1,11 +1,14 @@
-input_data_type: raw # raw, chunked
-input_file: resources/input_examples/raw_demo.jsonl  # input file path, support json, jsonl, txt. See resources/input_examples for examples
-output_data_type: cot # atomic, aggregated, multi_hop, cot
-output_data_format: Sharegpt # Alpaca, Sharegpt, ChatML
-tokenizer: cl100k_base # tokenizer for counting tokens, support tiktoken tokenizer names and local tokenizer path
+read:
+  input_file: resources/input_examples/txt_demo.txt  # input file path, support json, jsonl, txt. See resources/input_examples for examples
+split:
+  chunk_size: 1024 # chunk size for text splitting
+  chunk_overlap: 100 # chunk overlap for text splitting
 search: # web search configuration
   enabled: false # whether to enable web search
   search_types: ["google"] # search engine types, support: google, bing, uniprot, wikipedia
+output_data_type: cot # atomic, aggregated, multi_hop, cot
+output_data_format: Sharegpt # Alpaca, Sharegpt, ChatML
+tokenizer: cl100k_base # tokenizer for counting tokens, support tiktoken tokenizer names and local tokenizer path
 method_params:
   method: leiden
   max_size: 20 # Maximum size of communities

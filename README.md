@@ -8,7 +8,7 @@
 [![forks](https://img.shields.io/github/forks/open-sciencelab/GraphGen.svg)](https://github.com/open-sciencelab/GraphGen)
 [![open issues](https://img.shields.io/github/issues-raw/open-sciencelab/GraphGen)](https://github.com/open-sciencelab/GraphGen/issues)
 [![issue resolution](https://img.shields.io/github/issues-closed-raw/open-sciencelab/GraphGen)](https://github.com/open-sciencelab/GraphGen/issues)
-[![documentation](https://img.shields.io/badge/docs-latest-blue)](https://graphgen-cookbook.readthedocs.io/en/latest/)
+[![documentation](https://img.shields.io/badge/docs-latest-blue)](https://chenzihong.gitbook.io/graphgen-cookbook/)
 [![wechat](https://img.shields.io/badge/wechat-brightgreen?logo=wechat&logoColor=white)](https://cdn.vansin.top/internlm/dou.jpg)
 [![arXiv](https://img.shields.io/badge/Paper-arXiv-white)](https://arxiv.org/abs/2505.20416)
 [![Hugging Face](https://img.shields.io/badge/Paper-on%20HF-white?logo=huggingface&logoColor=yellow)](https://huggingface.co/papers/2505.20416)
@@ -100,7 +100,7 @@ For any questions, please check [FAQ](https://github.com/open-sciencelab/GraphGe
 ### Run Gradio Demo
 
    ```bash
-   python -m webui.app.py
+   python -m webui.app
    ```
 
 ![ui](https://github.com/user-attachments/assets/3024e9bc-5d45-45f8-a4e6-b57bd2350d84)
@@ -147,8 +147,7 @@ For any questions, please check [FAQ](https://github.com/open-sciencelab/GraphGe
 
     ```yaml
       # configs/cot_config.yaml
-      input_data_type: raw
-      input_file: resources/input_examples/raw_demo.jsonl
+      input_file: resources/input_examples/jsonl_demo.jsonl
       output_data_type: cot
       tokenizer: cl100k_base
       # additional settings...

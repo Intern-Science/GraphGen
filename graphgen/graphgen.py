@@ -7,16 +7,19 @@ from typing import Dict, List, Union, cast
 import gradio as gr
 from tqdm.asyncio import tqdm as tqdm_async
 
-from .models import (
-    Chunk,
+from graphgen.bases.base_storage import StorageNameSpace
+from graphgen.bases.datatypes import Chunk
+from graphgen.models import (
     JsonKVStorage,
     JsonListStorage,
     NetworkXStorage,
     OpenAIModel,
     Tokenizer,
     TraverseStrategy,
+    read_file,
+    split_chunks,
 )
-from .models.storage.base_storage import StorageNameSpace
+
 from .operators import (
     extract_kg,
     generate_cot,
@@ -30,9 +33,9 @@ from .operators import (
 from .utils import (
     compute_content_hash,
     create_event_loop,
+    detect_main_language,
     format_generation_results,
     logger,
-    read_file,
 )
 
 sys_path = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -48,11 +51,6 @@ class GraphGen:
     tokenizer_instance: Tokenizer = None
     synthesizer_llm_client: OpenAIModel = None
     trainee_llm_client: OpenAIModel = None
-
-    # text chunking
-    # TODO: make it configurable
-    chunk_size: int = 1024
-    chunk_overlap_size: int = 100
 
     # search
     search_config: dict = field(
@@ -108,94 +106,62 @@ class GraphGen:
             namespace=f"qa-{self.unique_id}",
         )
 
-    async def async_split_chunks(
-        self, data: List[Union[List, Dict]], data_type: str
-    ) -> dict:
+    async def async_split_chunks(self, data: List[Union[List, Dict]]) -> dict:
         # TODO: configurable whether to use coreference resolution
         if len(data) == 0:
             return {}
 
         inserting_chunks = {}
-        if data_type == "raw":
-            assert isinstance(data, list) and isinstance(data[0], dict)
-            # compute hash for each document
-            new_docs = {
-                compute_content_hash(doc["content"], prefix="doc-"): {
-                    "content": doc["content"]
+        assert isinstance(data, list) and isinstance(data[0], dict)
+
+        # compute hash for each document
+        new_docs = {
+            compute_content_hash(doc["content"], prefix="doc-"): {
+                "content": doc["content"]
+            }
+            for doc in data
+        }
+        _add_doc_keys = await self.full_docs_storage.filter_keys(list(new_docs.keys()))
+        new_docs = {k: v for k, v in new_docs.items() if k in _add_doc_keys}
+        if len(new_docs) == 0:
+            logger.warning("All docs are already in the storage")
+            return {}
+        logger.info("[New Docs] inserting %d docs", len(new_docs))
+
+        cur_index = 1
+        doc_number = len(new_docs)
+        async for doc_key, doc in tqdm_async(
+            new_docs.items(), desc="[1/4]Chunking documents", unit="doc"
+        ):
+            doc_language = detect_main_language(doc["content"])
+            text_chunks = split_chunks(
+                doc["content"],
+                language=doc_language,
+                chunk_size=self.config["split"]["chunk_size"],
+                chunk_overlap=self.config["split"]["chunk_overlap"],
+            )
+
+            chunks = {
+                compute_content_hash(txt, prefix="chunk-"): {
+                    "content": txt,
+                    "full_doc_id": doc_key,
+                    "length": len(self.tokenizer_instance.encode_string(txt)),
+                    "language": doc_language,
                 }
-                for doc in data
+                for txt in text_chunks
             }
-            _add_doc_keys = await self.full_docs_storage.filter_keys(
-                list(new_docs.keys())
-            )
-            new_docs = {k: v for k, v in new_docs.items() if k in _add_doc_keys}
-            if len(new_docs) == 0:
-                logger.warning("All docs are already in the storage")
-                return {}
-            logger.info("[New Docs] inserting %d docs", len(new_docs))
+            inserting_chunks.update(chunks)
 
-            cur_index = 1
-            doc_number = len(new_docs)
-            async for doc_key, doc in tqdm_async(
-                new_docs.items(), desc="[1/4]Chunking documents", unit="doc"
-            ):
-                chunks = {
-                    compute_content_hash(dp["content"], prefix="chunk-"): {
-                        **dp,
-                        "full_doc_id": doc_key,
-                    }
-                    for dp in self.tokenizer_instance.chunk_by_token_size(
-                        doc["content"], self.chunk_overlap_size, self.chunk_size
-                    )
-                }
-                inserting_chunks.update(chunks)
+            if self.progress_bar is not None:
+                self.progress_bar(cur_index / doc_number, f"Chunking {doc_key}")
+                cur_index += 1
 
-                if self.progress_bar is not None:
-                    self.progress_bar(cur_index / doc_number, f"Chunking {doc_key}")
-                    cur_index += 1
-
-            _add_chunk_keys = await self.text_chunks_storage.filter_keys(
-                list(inserting_chunks.keys())
-            )
-            inserting_chunks = {
-                k: v for k, v in inserting_chunks.items() if k in _add_chunk_keys
-            }
-        elif data_type == "chunked":
-            assert isinstance(data, list) and isinstance(data[0], list)
-            new_docs = {
-                compute_content_hash("".join(chunk["content"]), prefix="doc-"): {
-                    "content": "".join(chunk["content"])
-                }
-                for doc in data
-                for chunk in doc
-            }
-            _add_doc_keys = await self.full_docs_storage.filter_keys(
-                list(new_docs.keys())
-            )
-            new_docs = {k: v for k, v in new_docs.items() if k in _add_doc_keys}
-            if len(new_docs) == 0:
-                logger.warning("All docs are already in the storage")
-                return {}
-            logger.info("[New Docs] inserting %d docs", len(new_docs))
-            async for doc in tqdm_async(
-                data, desc="[1/4]Chunking documents", unit="doc"
-            ):
-                doc_str = "".join([chunk["content"] for chunk in doc])
-                for chunk in doc:
-                    chunk_key = compute_content_hash(chunk["content"], prefix="chunk-")
-                    inserting_chunks[chunk_key] = {
-                        **chunk,
-                        "full_doc_id": compute_content_hash(doc_str, prefix="doc-"),
-                    }
-            _add_chunk_keys = await self.text_chunks_storage.filter_keys(
-                list(inserting_chunks.keys())
-            )
-            inserting_chunks = {
-                k: v for k, v in inserting_chunks.items() if k in _add_chunk_keys
-            }
-        else:
-            raise ValueError(f"Unknown data type: {data_type}")
-
+        _add_chunk_keys = await self.text_chunks_storage.filter_keys(
+            list(inserting_chunks.keys())
+        )
+        inserting_chunks = {
+            k: v for k, v in inserting_chunks.items() if k in _add_chunk_keys
+        }
         await self.full_docs_storage.upsert(new_docs)
         await self.text_chunks_storage.upsert(inserting_chunks)
 
@@ -210,11 +176,9 @@ class GraphGen:
         insert chunks into the graph
         """
 
-        input_file = self.config["input_file"]
-        data_type = self.config["input_data_type"]
+        input_file = self.config["read"]["input_file"]
         data = read_file(input_file)
-
-        inserting_chunks = await self.async_split_chunks(data, data_type)
+        inserting_chunks = await self.async_split_chunks(data)
 
         if len(inserting_chunks) == 0:
             logger.warning("All chunks are already in the storage")

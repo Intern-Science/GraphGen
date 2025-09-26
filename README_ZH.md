@@ -42,7 +42,7 @@ GraphGen: Enhancing Supervised Fine-Tuning for LLMs with Knowledge-Driven Synthe
 
 ## 📝 什么是 GraphGen？
 
-GraphGen 是一个基于知识图谱引导的合成数据生成框架。请查看[**论文**](https://arxiv.org/abs/2505.20416)和[最佳实践](https://github.com/open-sciencelab/GraphGen/issues/17)。
+GraphGen 是一个基于知识图谱的数据合成框架。请查看[**论文**](https://arxiv.org/abs/2505.20416)和[最佳实践](https://github.com/open-sciencelab/GraphGen/issues/17)。
 
 以下是在超过 50 % 的 SFT 数据来自 GraphGen 及我们的数据清洗流程时的训练后结果：
 
@@ -99,7 +99,7 @@ GraphGen 首先根据源文本构建细粒度的知识图谱，然后利用期�
 ### 运行 Gradio 演示
 
    ```bash
-   python -m webui.app.py
+   python -m webui.app
    ```
 
 ![ui](https://github.com/user-attachments/assets/3024e9bc-5d45-45f8-a4e6-b57bd2350d84)
@@ -146,8 +146,7 @@ GraphGen 首先根据源文本构建细粒度的知识图谱，然后利用期�
 
     ```yaml
       # configs/cot_config.yaml
-      input_data_type: raw
-      input_file: resources/input_examples/raw_demo.jsonl
+      input_file: resources/input_examples/jsonl_demo.jsonl
       output_data_type: cot
       tokenizer: cl100k_base
       # 其他设置...

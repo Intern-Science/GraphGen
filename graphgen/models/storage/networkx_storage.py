@@ -1,11 +1,13 @@
-import os
 import html
-from typing import Any, Union, cast, Optional
+import os
 from dataclasses import dataclass
+from typing import Any, Optional, Union, cast
+
 import networkx as nx
 
+from graphgen.bases.base_storage import BaseGraphStorage
 from graphgen.utils import logger
-from .base_storage import BaseGraphStorage
+
 
 @dataclass
 class NetworkXStorage(BaseGraphStorage):
@@ -17,7 +19,11 @@ class NetworkXStorage(BaseGraphStorage):
 
     @staticmethod
     def write_nx_graph(graph: nx.Graph, file_name):
-        logger.info("Writing graph with %d nodes, %d edges", graph.number_of_nodes(), graph.number_of_edges())
+        logger.info(
+            "Writing graph with %d nodes, %d edges",
+            graph.number_of_nodes(),
+            graph.number_of_edges(),
+        )
         nx.write_graphml(graph, file_name)
 
     @staticmethod
@@ -77,8 +83,10 @@ class NetworkXStorage(BaseGraphStorage):
         preloaded_graph = NetworkXStorage.load_nx_graph(self._graphml_xml_file)
         if preloaded_graph is not None:
             logger.info(
-                "Loaded graph from %s with %d nodes, %d edges", self._graphml_xml_file,
-                preloaded_graph.number_of_nodes(), preloaded_graph.number_of_edges()
+                "Loaded graph from %s with %d nodes, %d edges",
+                self._graphml_xml_file,
+                preloaded_graph.number_of_nodes(),
+                preloaded_graph.number_of_edges(),
             )
         self._graph = preloaded_graph or nx.Graph()
 
@@ -111,7 +119,9 @@ class NetworkXStorage(BaseGraphStorage):
     async def get_all_edges(self) -> Union[list[dict], None]:
         return self._graph.edges(data=True)
 
-    async def get_node_edges(self, source_node_id: str) -> Union[list[tuple[str, str]], None]:
+    async def get_node_edges(
+        self, source_node_id: str
+    ) -> Union[list[tuple[str, str]], None]:
         if self._graph.has_node(source_node_id):
             return list(self._graph.edges(source_node_id, data=True))
         return None
@@ -133,11 +143,17 @@ class NetworkXStorage(BaseGraphStorage):
     ):
         self._graph.add_edge(source_node_id, target_node_id, **edge_data)
 
-    async def update_edge(self, source_node_id: str, target_node_id: str, edge_data: dict[str, str]):
+    async def update_edge(
+        self, source_node_id: str, target_node_id: str, edge_data: dict[str, str]
+    ):
         if self._graph.has_edge(source_node_id, target_node_id):
             self._graph.edges[(source_node_id, target_node_id)].update(edge_data)
         else:
-            logger.warning("Edge %s -> %s not found in the graph for update.", source_node_id, target_node_id)
+            logger.warning(
+                "Edge %s -> %s not found in the graph for update.",
+                source_node_id,
+                target_node_id,
+            )
 
     async def delete_node(self, node_id: str):
         """

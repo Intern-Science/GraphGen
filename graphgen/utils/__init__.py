@@ -1,6 +1,5 @@
 from .calculate_confidence import yes_no_loss_entropy
 from .detect_lang import detect_if_chinese, detect_main_language
-from .file import read_file
 from .format import (
     format_generation_results,
     handle_single_entity_extraction,

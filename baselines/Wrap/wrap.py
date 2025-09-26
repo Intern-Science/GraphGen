@@ -85,7 +85,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--input_file",
         help="Raw context jsonl path.",
-        default="resources/input_examples/chunked_demo.json",
+        default="resources/input_examples/json_demo.json",
         type=str,
     )
     parser.add_argument(

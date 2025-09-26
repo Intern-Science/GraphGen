@@ -1,22 +1,27 @@
-from dataclasses import  dataclass, field
+from dataclasses import dataclass, field
 from typing import Set
 
+from graphgen.bases.datatypes import QAPair
 from graphgen.models.evaluate.base_evaluator import BaseEvaluator
-from graphgen.models.text.text_pair import TextPair
-from graphgen.utils import detect_main_language, NLTKHelper, create_event_loop
-
+from graphgen.utils import NLTKHelper, create_event_loop, detect_main_language
 
 nltk_helper = NLTKHelper()
+
 
 @dataclass
 class MTLDEvaluator(BaseEvaluator):
     """
     衡量文本词汇多样性的指标
     """
-    stopwords_en: Set[str] = field(default_factory=lambda: set(nltk_helper.get_stopwords("english")))
-    stopwords_zh: Set[str] = field(default_factory=lambda: set(nltk_helper.get_stopwords("chinese")))
 
-    async def evaluate_single(self, pair: TextPair) -> float:
+    stopwords_en: Set[str] = field(
+        default_factory=lambda: set(nltk_helper.get_stopwords("english"))
+    )
+    stopwords_zh: Set[str] = field(
+        default_factory=lambda: set(nltk_helper.get_stopwords("chinese"))
+    )
+
+    async def evaluate_single(self, pair: QAPair) -> float:
         loop = create_event_loop()
         return await loop.run_in_executor(None, self._calculate_mtld_score, pair.answer)
 
@@ -71,6 +76,6 @@ class MTLDEvaluator(BaseEvaluator):
             if ttr <= threshold:
                 factors += 1
             else:
-                factors += (1 - (ttr - threshold) / (1 - threshold))
+                factors += 1 - (ttr - threshold) / (1 - threshold)
 
         return len(tokens) / factors if factors > 0 else len(tokens)

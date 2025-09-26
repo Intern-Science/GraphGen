@@ -1,22 +1,24 @@
 import asyncio
-
 from dataclasses import dataclass
+
 from tqdm.asyncio import tqdm as tqdm_async
+
+from graphgen.bases.datatypes import QAPair
 from graphgen.utils import create_event_loop
-from graphgen.models.text.text_pair import TextPair
+
 
 @dataclass
 class BaseEvaluator:
     max_concurrent: int = 100
     results: list[float] = None
 
-    def evaluate(self, pairs: list[TextPair]) -> list[float]:
+    def evaluate(self, pairs: list[QAPair]) -> list[float]:
         """
         Evaluate the text and return a score.
         """
         return create_event_loop().run_until_complete(self.async_evaluate(pairs))
 
-    async def async_evaluate(self, pairs: list[TextPair]) -> list[float]:
+    async def async_evaluate(self, pairs: list[QAPair]) -> list[float]:
         semaphore = asyncio.Semaphore(self.max_concurrent)
 
         async def evaluate_with_semaphore(pair):
@@ -31,10 +33,10 @@ class BaseEvaluator:
             results.append(await result)
         return results
 
-    async def evaluate_single(self, pair: TextPair) -> float:
+    async def evaluate_single(self, pair: QAPair) -> float:
         raise NotImplementedError()
 
-    def get_average_score(self, pairs: list[TextPair]) -> float:
+    def get_average_score(self, pairs: list[QAPair]) -> float:
         """
         Get the average score of a batch of texts.
         """
@@ -42,7 +44,7 @@ class BaseEvaluator:
         self.results = results
         return sum(self.results) / len(pairs)
 
-    def get_min_max_score(self, pairs: list[TextPair]) -> tuple[float, float]:
+    def get_min_max_score(self, pairs: list[QAPair]) -> tuple[float, float]:
         """
         Get the min and max score of a batch of texts.
         """

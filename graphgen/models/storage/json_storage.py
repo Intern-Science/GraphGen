@@ -1,7 +1,7 @@
 import os
 from dataclasses import dataclass
 
-from graphgen.models.storage.base_storage import BaseKVStorage, BaseListStorage
+from graphgen.bases.base_storage import BaseKVStorage, BaseListStorage
 from graphgen.utils import load_json, logger, write_json
 
 

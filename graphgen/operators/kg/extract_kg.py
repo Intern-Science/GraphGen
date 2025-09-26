@@ -6,8 +6,9 @@ from typing import List
 import gradio as gr
 from tqdm.asyncio import tqdm as tqdm_async
 
-from graphgen.models import Chunk, OpenAIModel, Tokenizer
-from graphgen.models.storage.base_storage import BaseGraphStorage
+from graphgen.bases.base_storage import BaseGraphStorage
+from graphgen.bases.datatypes import Chunk
+from graphgen.models import OpenAIModel, Tokenizer
 from graphgen.operators.kg.merge_kg import merge_edges, merge_nodes
 from graphgen.templates import KG_EXTRACTION_PROMPT
 from graphgen.utils import (

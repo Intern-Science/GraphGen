@@ -3,8 +3,8 @@ from collections import Counter
 
 from tqdm.asyncio import tqdm as tqdm_async
 
+from graphgen.bases.base_storage import BaseGraphStorage
 from graphgen.models import Tokenizer, TopkTokenModel
-from graphgen.models.storage.base_storage import BaseGraphStorage
 from graphgen.templates import KG_EXTRACTION_PROMPT, KG_SUMMARIZATION_PROMPT
 from graphgen.utils import detect_main_language, logger
 from graphgen.utils.format import split_string_by_multi_markers

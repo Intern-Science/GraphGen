@@ -1,7 +1,6 @@
-
 from typing import Tuple
 
-__version__ = '20250416'
+__version__ = "20250416"
 short_version = __version__
 
 
@@ -15,13 +14,13 @@ def parse_version_info(version_str: str) -> Tuple:
         tuple: A sequence of integer and string represents version.
     """
     _version_info = []
-    for x in version_str.split('.'):
+    for x in version_str.split("."):
         if x.isdigit():
             _version_info.append(int(x))
-        elif x.find('rc') != -1:
-            patch_version = x.split('rc')
+        elif x.find("rc") != -1:
+            patch_version = x.split("rc")
             _version_info.append(int(patch_version[0]))
-            _version_info.append(f'rc{patch_version[1]}')
+            _version_info.append(f"rc{patch_version[1]}")
     return tuple(_version_info)
 
 

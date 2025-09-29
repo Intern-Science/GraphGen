@@ -65,7 +65,7 @@ def main():
         "GraphGen with unique ID %s logging to %s",
         unique_id,
         os.path.join(
-            working_dir, "logs", f"graphgen_{output_data_type}_{unique_id}.log"
+            working_dir, "logs", f"{unique_id}_graphgen_{output_data_type}.log"
         ),
     )
 

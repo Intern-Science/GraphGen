@@ -102,8 +102,13 @@ class GraphGen:
             self.working_dir, namespace="rephrase"
         )
         self.qa_storage: JsonListStorage = JsonListStorage(
-            os.path.join(self.working_dir, "data", "graphgen", str(self.unique_id)),
-            namespace=f"qa-{self.unique_id}",
+            os.path.join(
+                self.working_dir,
+                "data",
+                "graphgen",
+                f"{self.unique_id}_{self.config['output_data_type']}",
+            ),
+            namespace="qa",
         )
 
     async def async_split_chunks(self, data: List[Union[List, Dict]]) -> dict:

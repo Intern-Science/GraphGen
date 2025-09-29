@@ -16,8 +16,6 @@ load_dotenv()
 
 def set_working_dir(folder):
     os.makedirs(folder, exist_ok=True)
-    os.makedirs(os.path.join(folder, "data", "graphgen"), exist_ok=True)
-    os.makedirs(os.path.join(folder, "logs"), exist_ok=True)
 
 
 def save_config(config_path, global_config):
@@ -48,17 +46,20 @@ def main():
     args = parser.parse_args()
 
     working_dir = args.output_dir
-    set_working_dir(working_dir)
 
     with open(args.config_file, "r", encoding="utf-8") as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
 
     output_data_type = config["output_data_type"]
     unique_id = int(time.time())
+
+    output_path = os.path.join(
+        working_dir, "data", "graphgen", f"{unique_id}_{output_data_type}"
+    )
+    set_working_dir(output_path)
+
     set_logger(
-        os.path.join(
-            working_dir, "logs", f"graphgen_{output_data_type}_{unique_id}.log"
-        ),
+        os.path.join(output_path, f"{unique_id}.log"),
         if_stream=True,
     )
     logger.info(
@@ -94,8 +95,7 @@ def main():
     else:
         raise ValueError(f"Unsupported output data type: {output_data_type}")
 
-    output_path = os.path.join(working_dir, "data", "graphgen", str(unique_id))
-    save_config(os.path.join(output_path, f"config-{unique_id}.yaml"), config)
+    save_config(os.path.join(output_path, "config.yaml"), config)
     logger.info("GraphGen completed successfully. Data saved to %s", output_path)
 
 

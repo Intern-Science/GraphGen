@@ -3,14 +3,14 @@ from typing import Dict, List, Tuple
 
 from tqdm.asyncio import tqdm as tqdm_async
 
-from graphgen.models import CommunityDetector, NetworkXStorage, OpenAIModel
+from graphgen.models import CommunityDetector, NetworkXStorage, OpenAIClient
 from graphgen.templates import COT_GENERATION_PROMPT, COT_TEMPLATE_DESIGN_PROMPT
 from graphgen.utils import compute_content_hash, detect_main_language
 
 
 async def generate_cot(
     graph_storage: NetworkXStorage,
-    synthesizer_llm_client: OpenAIModel,
+    synthesizer_llm_client: OpenAIClient,
     method_params: Dict = None,
 ):
     method = method_params.get("method", "leiden")

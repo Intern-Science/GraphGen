@@ -9,7 +9,7 @@ import pandas as pd
 from dotenv import load_dotenv
 
 from graphgen.graphgen import GraphGen
-from graphgen.models import OpenAIModel, Tokenizer
+from graphgen.models import OpenAIClient, Tokenizer
 from graphgen.models.llm.limitter import RPM, TPM
 from graphgen.utils import set_logger
 from webui.base import WebuiParams
@@ -41,7 +41,7 @@ def init_graph_gen(config: dict, env: dict) -> GraphGen:
 
     graph_gen = GraphGen(working_dir=working_dir, config=config)
     # Set up LLM clients
-    graph_gen.synthesizer_llm_client = OpenAIModel(
+    graph_gen.synthesizer_llm_client = OpenAIClient(
         model_name=env.get("SYNTHESIZER_MODEL", ""),
         base_url=env.get("SYNTHESIZER_BASE_URL", ""),
         api_key=env.get("SYNTHESIZER_API_KEY", ""),
@@ -50,7 +50,7 @@ def init_graph_gen(config: dict, env: dict) -> GraphGen:
         tpm=TPM(env.get("TPM", 50000)),
     )
 
-    graph_gen.trainee_llm_client = OpenAIModel(
+    graph_gen.trainee_llm_client = OpenAIClient(
         model_name=env.get("TRAINEE_MODEL", ""),
         base_url=env.get("TRAINEE_BASE_URL", ""),
         api_key=env.get("TRAINEE_API_KEY", ""),

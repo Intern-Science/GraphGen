@@ -3,8 +3,8 @@ from collections import Counter
 
 from tqdm.asyncio import tqdm as tqdm_async
 
-from graphgen.bases.base_storage import BaseGraphStorage
-from graphgen.models import Tokenizer, TopkTokenModel
+from graphgen.bases import BaseGraphStorage, BaseLLMClient
+from graphgen.models import Tokenizer
 from graphgen.templates import KG_EXTRACTION_PROMPT, KG_SUMMARIZATION_PROMPT
 from graphgen.utils import detect_main_language, logger
 from graphgen.utils.format import split_string_by_multi_markers
@@ -13,7 +13,7 @@ from graphgen.utils.format import split_string_by_multi_markers
 async def _handle_kg_summary(
     entity_or_relation_name: str,
     description: str,
-    llm_client: TopkTokenModel,
+    llm_client: BaseLLMClient,
     tokenizer_instance: Tokenizer,
     max_summary_tokens: int = 200,
 ) -> str:
@@ -34,11 +34,11 @@ async def _handle_kg_summary(
         language = "Chinese"
     KG_EXTRACTION_PROMPT["FORMAT"]["language"] = language
 
-    tokens = tokenizer_instance.encode_string(description)
+    tokens = tokenizer_instance.encode(description)
     if len(tokens) < max_summary_tokens:
         return description
 
-    use_description = tokenizer_instance.decode_tokens(tokens[:max_summary_tokens])
+    use_description = tokenizer_instance.decode(tokens[:max_summary_tokens])
     prompt = KG_SUMMARIZATION_PROMPT[language]["TEMPLATE"].format(
         entity_name=entity_or_relation_name,
         description_list=use_description.split("<SEP>"),
@@ -54,7 +54,7 @@ async def _handle_kg_summary(
 async def merge_nodes(
     nodes_data: dict,
     kg_instance: BaseGraphStorage,
-    llm_client: TopkTokenModel,
+    llm_client: BaseLLMClient,
     tokenizer_instance: Tokenizer,
     max_concurrent: int = 1000,
 ):
@@ -131,7 +131,7 @@ async def merge_nodes(
 async def merge_edges(
     edges_data: dict,
     kg_instance: BaseGraphStorage,
-    llm_client: TopkTokenModel,
+    llm_client: BaseLLMClient,
     tokenizer_instance: Tokenizer,
     max_concurrent: int = 1000,
 ):

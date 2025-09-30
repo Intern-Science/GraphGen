@@ -1,13 +1,13 @@
 from typing import List
 
 from graphgen.bases.datatypes import Chunk
-from graphgen.models import OpenAIModel
+from graphgen.models import OpenAIClient
 from graphgen.templates import COREFERENCE_RESOLUTION_PROMPT
 from graphgen.utils import detect_main_language
 
 
 async def resolute_coreference(
-    llm_client: OpenAIModel, chunks: List[Chunk]
+    llm_client: OpenAIClient, chunks: List[Chunk]
 ) -> List[Chunk]:
     """
     Resolute conference

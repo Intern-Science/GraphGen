@@ -1,7 +1,5 @@
 import math
-import re
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 import openai
 from openai import APIConnectionError, APITimeoutError, AsyncOpenAI, RateLimitError
@@ -12,9 +10,9 @@ from tenacity import (
     wait_exponential,
 )
 
+from graphgen.bases.base_llm_client import BaseLLMClient
+from graphgen.bases.datatypes import Token
 from graphgen.models.llm.limitter import RPM, TPM
-from graphgen.models.llm.tokenizer import Tokenizer
-from graphgen.models.llm.topk_token_model import Token, TopkTokenModel
 
 
 def get_top_response_tokens(response: openai.ChatCompletion) -> List[Token]:
@@ -30,32 +28,33 @@ def get_top_response_tokens(response: openai.ChatCompletion) -> List[Token]:
     return tokens
 
 
-def filter_think_tags(text: str) -> str:
-    """
-    Remove <think> tags from the text.
-    If the text contains <think> and </think>, it removes everything between them and the tags themselves.
-    """
-    think_pattern = re.compile(r"<think>.*?</think>", re.DOTALL)
-    filtered_text = think_pattern.sub("", text).strip()
-    return filtered_text if filtered_text else text.strip()
+class OpenAIClient(BaseLLMClient):
+    def __init__(
+        self,
+        *,
+        model_name: str = "gpt-4o-mini",
+        api_key: Optional[str] = None,
+        base_url: Optional[str] = None,
+        json_mode: bool = False,
+        seed: Optional[int] = None,
+        topk_per_token: int = 5,  # number of topk tokens to generate for each token
+        request_limit: bool = False,
+        **kwargs: Any,
+    ):
+        super().__init__(**kwargs)
+        self.model_name = model_name
+        self.api_key = api_key
+        self.base_url = base_url
+        self.json_mode = json_mode
+        self.seed = seed
+        self.topk_per_token = topk_per_token
 
+        self.token_usage: list = []
+        self.request_limit = request_limit
+        self.rpm = RPM(rpm=1000)
+        self.tpm = TPM(tpm=50000)
 
-@dataclass
-class OpenAIModel(TopkTokenModel):
-    model_name: str = "gpt-4o-mini"
-    api_key: str = None
-    base_url: str = None
-
-    system_prompt: str = ""
-    json_mode: bool = False
-    seed: int = None
-
-    token_usage: list = field(default_factory=list)
-    request_limit: bool = False
-    rpm: RPM = field(default_factory=lambda: RPM(rpm=1000))
-    tpm: TPM = field(default_factory=lambda: TPM(tpm=50000))
-
-    tokenizer_instance: Tokenizer = field(default_factory=Tokenizer)
+        self.__post_init__()
 
     def __post_init__(self):
         assert self.api_key is not None, "Please provide api key to access openai api."
@@ -66,7 +65,7 @@ class OpenAIModel(TopkTokenModel):
     def _pre_generate(self, text: str, history: List[str]) -> Dict:
         kwargs = {
             "temperature": self.temperature,
-            "top_p": self.topp,
+            "top_p": self.top_p,
             "max_tokens": self.max_tokens,
         }
         if self.seed:
@@ -94,7 +93,10 @@ class OpenAIModel(TopkTokenModel):
         ),
     )
     async def generate_topk_per_token(
-        self, text: str, history: Optional[List[str]] = None
+        self,
+        text: str,
+        history: Optional[List[str]] = None,
+        **extra: Any,
     ) -> List[Token]:
         kwargs = self._pre_generate(text, history)
         if self.topk_per_token > 0:
@@ -120,16 +122,16 @@ class OpenAIModel(TopkTokenModel):
         ),
     )
     async def generate_answer(
-        self, text: str, history: Optional[List[str]] = None, temperature: int = 0
+        self,
+        text: str,
+        history: Optional[List[str]] = None,
+        **extra: Any,
     ) -> str:
         kwargs = self._pre_generate(text, history)
-        kwargs["temperature"] = temperature
 
         prompt_tokens = 0
         for message in kwargs["messages"]:
-            prompt_tokens += len(
-                self.tokenizer_instance.encode_string(message["content"])
-            )
+            prompt_tokens += len(self.tokenizer.encode(message["content"]))
         estimated_tokens = prompt_tokens + kwargs["max_tokens"]
 
         if self.request_limit:
@@ -147,9 +149,10 @@ class OpenAIModel(TopkTokenModel):
                     "total_tokens": completion.usage.total_tokens,
                 }
             )
-        return filter_think_tags(completion.choices[0].message.content)
+        return self.filter_think_tags(completion.choices[0].message.content)
 
     async def generate_inputs_prob(
-        self, text: str, history: Optional[List[str]] = None
+        self, text: str, history: Optional[List[str]] = None, **extra: Any
     ) -> List[Token]:
+        """Generate probabilities for each token in the input."""
         raise NotImplementedError

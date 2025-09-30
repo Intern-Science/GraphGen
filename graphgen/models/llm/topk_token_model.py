@@ -1,18 +1,7 @@
-import math
-from dataclasses import dataclass, field
-from typing import List, Union, Optional
+from dataclasses import dataclass
+from typing import List, Optional
 
-
-@dataclass
-class Token:
-    text: str
-    prob: float
-    top_candidates: List = field(default_factory=list)
-    ppl: Union[float, None] = field(default=None)
-
-    @property
-    def logprob(self) -> float:
-        return math.log(self.prob)
+from graphgen.bases import Token
 
 
 @dataclass
@@ -34,14 +23,18 @@ class TopkTokenModel:
         """
         raise NotImplementedError
 
-    async def generate_inputs_prob(self, text: str, history: Optional[List[str]] = None) -> List[Token]:
+    async def generate_inputs_prob(
+        self, text: str, history: Optional[List[str]] = None
+    ) -> List[Token]:
         """
         Generate prob and text for each token of the input text.
         This function is used to visualize the ppl.
         """
         raise NotImplementedError
 
-    async def generate_answer(self, text: str, history: Optional[List[str]] = None) -> str:
+    async def generate_answer(
+        self, text: str, history: Optional[List[str]] = None
+    ) -> str:
         """
         Generate answer from the model.
         """

@@ -45,7 +45,7 @@ def count_tokens(file, tokenizer_name, data_frame):
             content = item.get("content", "")
         else:
             content = item
-        token_count += len(tokenizer.encode_string(content))
+        token_count += len(tokenizer.encode(content))
 
     _update_data = [[str(token_count), str(token_count * 50), "N/A"]]
 

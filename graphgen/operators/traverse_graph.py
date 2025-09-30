@@ -6,11 +6,11 @@ from tqdm.asyncio import tqdm as tqdm_async
 from graphgen.models import (
     JsonKVStorage,
     NetworkXStorage,
-    OpenAIModel,
+    OpenAIClient,
     Tokenizer,
     TraverseStrategy,
 )
-from graphgen.operators.kg.split_kg import get_batches_with_strategy
+from graphgen.operators.build_kg.split_kg import get_batches_with_strategy
 from graphgen.templates import (
     ANSWER_REPHRASING_PROMPT,
     MULTI_HOP_GENERATION_PROMPT,
@@ -30,7 +30,7 @@ async def _pre_tokenize(
             if "length" not in edge[2]:
                 edge[2]["length"] = len(
                     await asyncio.get_event_loop().run_in_executor(
-                        None, tokenizer.encode_string, edge[2]["description"]
+                        None, tokenizer.encode, edge[2]["description"]
                     )
                 )
             return edge
@@ -40,7 +40,7 @@ async def _pre_tokenize(
             if "length" not in node[1]:
                 node[1]["length"] = len(
                     await asyncio.get_event_loop().run_in_executor(
-                        None, tokenizer.encode_string, node[1]["description"]
+                        None, tokenizer.encode, node[1]["description"]
                     )
                 )
             return node
@@ -161,7 +161,7 @@ def _post_process_synthetic_data(data):
 
 
 async def traverse_graph_for_aggregated(
-    llm_client: OpenAIModel,
+    llm_client: OpenAIClient,
     tokenizer: Tokenizer,
     graph_storage: NetworkXStorage,
     traverse_strategy: TraverseStrategy,
@@ -310,7 +310,7 @@ async def traverse_graph_for_aggregated(
 
 # pylint: disable=too-many-branches, too-many-statements
 async def traverse_graph_for_atomic(
-    llm_client: OpenAIModel,
+    llm_client: OpenAIClient,
     tokenizer: Tokenizer,
     graph_storage: NetworkXStorage,
     traverse_strategy: TraverseStrategy,
@@ -426,7 +426,7 @@ async def traverse_graph_for_atomic(
 
 
 async def traverse_graph_for_multi_hop(
-    llm_client: OpenAIModel,
+    llm_client: OpenAIClient,
     tokenizer: Tokenizer,
     graph_storage: NetworkXStorage,
     traverse_strategy: TraverseStrategy,

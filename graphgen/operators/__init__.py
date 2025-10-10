@@ -1,4 +1,4 @@
-from graphgen.operators.build_kg.extract_kg import extract_kg
+from graphgen.operators.build_kg.build_kg import build_kg
 from graphgen.operators.generate.generate_cot import generate_cot
 from graphgen.operators.search.search_all import search_all
 

@@ -16,8 +16,8 @@ from graphgen.models import (
     Tokenizer,
 )
 from graphgen.operators import (
+    build_kg,
     chunk_documents,
-    extract_kg,
     generate_cot,
     judge_statement,
     quiz,
@@ -146,10 +146,9 @@ class GraphGen:
 
         # Step 3: Extract entities and relations from chunks
         logger.info("[Entity and Relation Extraction]...")
-        _add_entities_and_relations = await extract_kg(
+        _add_entities_and_relations = await build_kg(
             llm_client=self.synthesizer_llm_client,
             kg_instance=self.graph_storage,
-            tokenizer_instance=self.tokenizer_instance,
             chunks=[
                 Chunk(id=k, content=v["content"]) for k, v in inserting_chunks.items()
             ],

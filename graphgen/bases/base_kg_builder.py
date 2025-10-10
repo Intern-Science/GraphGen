@@ -10,21 +10,12 @@ from graphgen.bases.datatypes import Chunk
 
 @dataclass
 class BaseKGBuilder(ABC):
-    kg_instance: BaseGraphStorage
     llm_client: BaseLLMClient
 
     _nodes: Dict[str, List[dict]] = field(default_factory=lambda: defaultdict(list))
     _edges: Dict[Tuple[str, str], List[dict]] = field(
         default_factory=lambda: defaultdict(list)
     )
-
-    def build(self, chunks: List[Chunk]) -> None:
-        pass
-
-    @abstractmethod
-    async def extract_all(self, chunks: List[Chunk]) -> None:
-        """Extract nodes and edges from all chunks."""
-        raise NotImplementedError
 
     @abstractmethod
     async def extract(
@@ -35,7 +26,18 @@ class BaseKGBuilder(ABC):
 
     @abstractmethod
     async def merge_nodes(
-        self, nodes_data: Dict[str, List[dict]], kg_instance: BaseGraphStorage, llm
+        self,
+        node_data: tuple[str, List[dict]],
+        kg_instance: BaseGraphStorage,
     ) -> None:
         """Merge extracted nodes into the knowledge graph."""
+        raise NotImplementedError
+
+    @abstractmethod
+    async def merge_edges(
+        self,
+        edges_data: tuple[Tuple[str, str], List[dict]],
+        kg_instance: BaseGraphStorage,
+    ) -> None:
+        """Merge extracted edges into the knowledge graph."""
         raise NotImplementedError

@@ -57,12 +57,6 @@ class BaseLLMClient(abc.ABC):
         """Generate probabilities for each token in the input."""
         raise NotImplementedError
 
-    def count_tokens(self, text: str) -> int:
-        """Count the number of tokens in the text."""
-        if self.tokenizer is None:
-            raise ValueError("Tokenizer is not set. Please provide a tokenizer to use count_tokens.")
-        return len(self.tokenizer.encode(text))
-
     @staticmethod
     def filter_think_tags(text: str, think_tag: str = "think") -> str:
         """

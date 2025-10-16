@@ -477,7 +477,7 @@ with gr.Blocks(title="GraphGen Demo", theme=gr.themes.Glass(), css=css) as demo:
                 )
                 ece_unit_sampling = gr.Radio(
                     label=_("Unit Sampling Strategy"),
-                    choices=["random", "max_loss", "min_loss"],
+                    choices=["random"],
                     value="random",
                     interactive=True,
                     info=_("Unit Sampling Strategy Info"),
@@ -588,6 +588,19 @@ with gr.Blocks(title="GraphGen Demo", theme=gr.themes.Glass(), css=css) as demo:
                 trainee_api_key,
                 quiz_accordion,
             ],
+        )
+
+        if_trainee_model.change(
+            lambda on: (
+                gr.update(
+                    choices=["random"]
+                    if not on
+                    else ["random", "max_loss", "min_loss"],
+                    value="random",
+                )
+            ),
+            inputs=if_trainee_model,
+            outputs=ece_unit_sampling,
         )
 
         upload_file.change(

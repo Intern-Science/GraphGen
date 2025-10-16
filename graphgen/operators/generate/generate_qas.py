@@ -18,12 +18,14 @@ async def generate_qas(
         ]
     ],
     generation_config: dict,
+    progress_bar=None,
 ) -> list[dict[str, Any]]:
     """
     Generate question-answer pairs based on nodes and edges.
     :param llm_client: LLM client
     :param batches
     :param generation_config
+    :param progress_bar
     :return: QA pairs
     """
     mode = generation_config["mode"]
@@ -45,6 +47,7 @@ async def generate_qas(
         batches,
         desc="[4/4]Generating QAs",
         unit="batch",
+        progress_bar=progress_bar,
     )
 
     # format

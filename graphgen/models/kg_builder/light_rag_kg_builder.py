@@ -42,7 +42,7 @@ class LightRAGKGBuilder(BaseKGBuilder):
 
         # step 2: initial glean
         final_result = await self.llm_client.generate_answer(hint_prompt)
-        logger.debug("First extraction result: %s", final_result)
+        logger.info("First extraction result: %s", final_result)
 
         # step3: iterative refinement
         history = pack_history_conversations(hint_prompt, final_result)
@@ -57,7 +57,7 @@ class LightRAGKGBuilder(BaseKGBuilder):
             glean_result = await self.llm_client.generate_answer(
                 text=KG_EXTRACTION_PROMPT[language]["CONTINUE"], history=history
             )
-            logger.debug("Loop %s glean: %s", loop_idx + 1, glean_result)
+            logger.info("Loop %s glean: %s", loop_idx + 1, glean_result)
 
             history += pack_history_conversations(
                 KG_EXTRACTION_PROMPT[language]["CONTINUE"], glean_result

@@ -237,7 +237,10 @@ class GraphGen:
 
         # Step 2： generate QA pairs
         results = await generate_qas(
-            self.synthesizer_llm_client, batches, generate_config
+            self.synthesizer_llm_client,
+            batches,
+            generate_config,
+            progress_bar=self.progress_bar,
         )
 
         if not results:

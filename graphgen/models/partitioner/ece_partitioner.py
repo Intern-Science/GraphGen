@@ -17,8 +17,8 @@ EDGE_UNIT: str = "e"
 class ECEPartitioner(BFSPartitioner):
     """
     ECE partitioner that partitions the graph into communities based on Expected Calibration Error (ECE).
-    We calculate ECE for edges in KG (represented as 'comprehension loss')
-    and group edges with similar ECE values into the same community.
+    We calculate ECE for units in KG (represented as 'comprehension loss')
+    and group units with similar ECE values into the same community.
     1. Select a sampling strategy.
     2. Choose a unit based on the sampling strategy.
     2. Expand the community using BFS.

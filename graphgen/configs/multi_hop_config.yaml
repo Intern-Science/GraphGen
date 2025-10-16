@@ -16,7 +16,7 @@ partition: # graph partition configuration
     max_units_per_community: 3 # max nodes and edges per community, for multi-hop, we recommend setting it to 3
     min_units_per_community: 3 # min nodes and edges per community, for multi-hop, we recommend setting it to 3
     max_tokens_per_community: 10240 # max tokens per community
-    unit_sampling: random # edge sampling strategy, support: random, max_loss, min_loss
+    unit_sampling: random # unit sampling strategy, support: random, max_loss, min_loss
 generate:
   mode: multi_hop # strategy for generating multi-hop QA pairs
   data_format: ChatML # Alpaca, Sharegpt, ChatML

@@ -1,5 +1,5 @@
 read:
-  input_file: resources/input_examples/txt_demo.txt  # input file path, support json, jsonl, txt. See resources/input_examples for examples
+  input_file: resources/input_examples/txt_demo.txt  # input file path, support json, jsonl, txt, pdf. See resources/input_examples for examples
 split:
   chunk_size: 1024 # chunk size for text splitting
   chunk_overlap: 100 # chunk overlap for text splitting
@@ -15,5 +15,5 @@ partition: # graph partition configuration
     use_lcc: false # whether to use the largest connected component
     random_seed: 42 # random seed for partitioning
 generate:
-  mode: cot # atomic, aggregated, multi_hop, cot
+  mode: cot # atomic, aggregated, multi_hop, cot, vqa
   data_format: Sharegpt # Alpaca, Sharegpt, ChatML

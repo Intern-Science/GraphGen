@@ -1,5 +1,6 @@
 from .calculate_confidence import yes_no_loss_entropy
 from .detect_lang import detect_if_chinese, detect_main_language
+from .device import pick_device
 from .format import (
     handle_single_entity_extraction,
     handle_single_relationship_extraction,

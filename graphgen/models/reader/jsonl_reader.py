@@ -5,7 +5,7 @@ from graphgen.bases.base_reader import BaseReader
 from graphgen.utils import logger
 
 
-class JsonlReader(BaseReader):
+class JSONLReader(BaseReader):
     def read(self, file_path: str) -> List[Dict[str, Any]]:
         docs = []
         with open(file_path, "r", encoding="utf-8") as f:

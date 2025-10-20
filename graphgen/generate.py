@@ -72,24 +72,11 @@ def main():
 
     graph_gen.search(search_config=config["search"])
 
-    # Use pipeline according to the output data type
-    if mode in ["atomic", "aggregated", "multi_hop"]:
-        logger.info("Generation mode set to '%s'. Start generation.", mode)
-        if "quiz_and_judge" in config and config["quiz_and_judge"]["enabled"]:
-            graph_gen.quiz_and_judge(quiz_and_judge_config=config["quiz_and_judge"])
-        else:
-            logger.warning(
-                "Quiz and Judge strategy is disabled. Edge sampling falls back to random."
-            )
-            assert (
-                config["partition"]["method"] == "ece"
-                and "method_params" in config["partition"]
-            ), "Only ECE partition with edge sampling is supported."
-            config["partition"]["method_params"]["edge_sampling"] = "random"
-    elif mode == "cot":
-        logger.info("Generation mode set to 'cot'. Start generation.")
-    else:
-        raise ValueError(f"Unsupported output data type: {mode}")
+    if config.get("quiz_and_judge", {}).get("enabled"):
+        graph_gen.quiz_and_judge(quiz_and_judge_config=config["quiz_and_judge"])
+
+    # TODO: add data filtering step here in the future
+    # graph_gen.filter(filter_config=config["filter"])
 
     graph_gen.generate(
         partition_config=config["partition"],

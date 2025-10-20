@@ -91,7 +91,7 @@ class GraphGen:
         insert chunks into the graph
         """
         # Step 1: Read files
-        data = read_files(read_config["input_file"])
+        data = read_files(read_config["input_file"], self.working_dir)
         if len(data) == 0:
             logger.warning("No data to process")
             return
@@ -105,6 +105,7 @@ class GraphGen:
                 "content": doc["content"]
             }
             for doc in data
+            if doc.get("type", "text") == "text"
         }
         _add_doc_keys = await self.full_docs_storage.filter_keys(list(new_docs.keys()))
         new_docs = {k: v for k, v in new_docs.items() if k in _add_doc_keys}

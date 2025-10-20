@@ -6,6 +6,7 @@ from graphgen.models import (
     AtomicGenerator,
     CoTGenerator,
     MultiHopGenerator,
+    VQAGenerator,
 )
 from graphgen.utils import logger, run_concurrent
 
@@ -39,6 +40,8 @@ async def generate_qas(
         generator = MultiHopGenerator(llm_client)
     elif mode == "cot":
         generator = CoTGenerator(llm_client)
+    elif mode == "vqa":
+        generator = VQAGenerator(llm_client)
     else:
         raise ValueError(f"Unsupported generation mode: {mode}")
 

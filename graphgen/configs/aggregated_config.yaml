@@ -1,5 +1,5 @@
 read:
-  input_file: resources/input_examples/jsonl_demo.jsonl # input file path, support json, jsonl, txt. See resources/input_examples for examples
+  input_file: resources/input_examples/jsonl_demo.jsonl # input file path, support json, jsonl, txt, pdf. See resources/input_examples for examples
 split:
   chunk_size: 1024 # chunk size for text splitting
   chunk_overlap: 100 # chunk overlap for text splitting
@@ -18,5 +18,5 @@ partition: # graph partition configuration
     max_tokens_per_community: 10240 # max tokens per community
     unit_sampling: max_loss # unit sampling strategy, support: random, max_loss, min_loss
 generate:
-  mode: aggregated # atomic, aggregated, multi_hop, cot
+  mode: aggregated # atomic, aggregated, multi_hop, cot, vqa
   data_format: ChatML # Alpaca, Sharegpt, ChatML

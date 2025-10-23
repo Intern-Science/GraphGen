@@ -1,5 +1,3 @@
-from dataclasses import dataclass
-
 import requests
 from fastapi import HTTPException
 
@@ -8,7 +6,6 @@ from graphgen.utils import logger
 GOOGLE_SEARCH_ENDPOINT = "https://customsearch.googleapis.com/customsearch/v1"
 
 
-@dataclass
 class GoogleSearch:
     def __init__(self, subscription_key: str, cx: str):
         """

@@ -2,7 +2,7 @@ import re
 from collections import defaultdict
 from typing import Dict, List, Tuple
 
-from graphgen.bases import BaseLLMClient, Chunk
+from graphgen.bases import Chunk
 from graphgen.templates import MMKG_EXTRACTION_PROMPT
 from graphgen.utils import (
     detect_main_language,
@@ -16,8 +16,6 @@ from .light_rag_kg_builder import LightRAGKGBuilder
 
 
 class MMKGBuilder(LightRAGKGBuilder):
-    llm_client: BaseLLMClient = None
-
     async def extract(
         self, chunk: Chunk
     ) -> Tuple[Dict[str, List[dict]], Dict[Tuple[str, str], List[dict]]]:

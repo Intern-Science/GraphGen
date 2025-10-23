@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from typing import List
 
 from transformers import AutoTokenizer
@@ -6,9 +5,9 @@ from transformers import AutoTokenizer
 from graphgen.bases import BaseTokenizer
 
 
-@dataclass
 class HFTokenizer(BaseTokenizer):
-    def __post_init__(self):
+    def __init__(self, model_name: str = "cl100k_base"):
+        super().__init__(model_name)
         self.enc = AutoTokenizer.from_pretrained(self.model_name)
 
     def encode(self, text: str) -> List[int]:

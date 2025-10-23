@@ -1,17 +1,16 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
 from typing import Any
 
 from graphgen.bases.base_llm_client import BaseLLMClient
 
 
-@dataclass
 class BaseGenerator(ABC):
     """
     Generate QAs based on given prompts.
     """
 
-    llm_client: BaseLLMClient
+    def __init__(self, llm_client: BaseLLMClient):
+        self.llm_client = llm_client
 
     @staticmethod
     @abstractmethod

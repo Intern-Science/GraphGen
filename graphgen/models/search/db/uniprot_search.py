@@ -1,5 +1,3 @@
-from dataclasses import dataclass
-
 import requests
 from fastapi import HTTPException
 
@@ -8,7 +6,6 @@ from graphgen.utils import logger
 UNIPROT_BASE = "https://rest.uniprot.org/uniprotkb/search"
 
 
-@dataclass
 class UniProtSearch:
     """
     UniProt Search client to search with UniProt.

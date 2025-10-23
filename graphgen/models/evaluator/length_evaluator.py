@@ -1,16 +1,13 @@
-from dataclasses import dataclass
-
 from graphgen.bases.datatypes import QAPair
 from graphgen.models.evaluator.base_evaluator import BaseEvaluator
 from graphgen.models.tokenizer import Tokenizer
 from graphgen.utils import create_event_loop
 
 
-@dataclass
 class LengthEvaluator(BaseEvaluator):
-    tokenizer_name: str = "cl100k_base"
-
-    def __post_init__(self):
+    def __init__(self, tokenizer_name: str = "cl100k_base", max_concurrent: int = 100):
+        super().__init__(max_concurrent)
+        self.tokenizer_name = tokenizer_name
         self.tokenizer = Tokenizer(model_name=self.tokenizer_name)
 
     async def evaluate_single(self, pair: QAPair) -> float:

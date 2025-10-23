@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from typing import Any
 
 from graphgen.bases import BaseGenerator
@@ -6,7 +5,6 @@ from graphgen.templates import AGGREGATED_GENERATION_PROMPT
 from graphgen.utils import compute_content_hash, detect_main_language, logger
 
 
-@dataclass
 class AggregatedGenerator(BaseGenerator):
     """
     Aggregated Generator follows a TWO-STEP process:

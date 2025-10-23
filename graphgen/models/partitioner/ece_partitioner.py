@@ -1,6 +1,5 @@
 import asyncio
 import random
-from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 from tqdm.asyncio import tqdm as tqdm_async
@@ -13,7 +12,6 @@ NODE_UNIT: str = "n"
 EDGE_UNIT: str = "e"
 
 
-@dataclass
 class ECEPartitioner(BFSPartitioner):
     """
     ECE partitioner that partitions the graph into communities based on Expected Calibration Error (ECE).

@@ -1,5 +1,4 @@
 from collections import defaultdict
-from dataclasses import dataclass
 from typing import Any, Dict, List, Set, Tuple
 
 import igraph as ig
@@ -9,7 +8,6 @@ from graphgen.bases import BaseGraphStorage, BasePartitioner
 from graphgen.bases.datatypes import Community
 
 
-@dataclass
 class LeidenPartitioner(BasePartitioner):
     """
     Leiden partitioner that partitions the graph into communities using the Leiden algorithm.

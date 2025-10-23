@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from typing import List, Union
 
 import wikipedia
@@ -7,7 +6,6 @@ from wikipedia import set_lang
 from graphgen.utils import detect_main_language, logger
 
 
-@dataclass
 class WikiSearch:
     @staticmethod
     def set_language(language: str):

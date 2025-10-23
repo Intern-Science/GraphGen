@@ -1,6 +1,5 @@
 import random
 from collections import deque
-from dataclasses import dataclass
 from typing import Any, List
 
 from graphgen.bases import BaseGraphStorage, BasePartitioner
@@ -10,7 +9,6 @@ NODE_UNIT: str = "n"
 EDGE_UNIT: str = "e"
 
 
-@dataclass
 class BFSPartitioner(BasePartitioner):
     """
     BFS partitioner that partitions the graph into communities of a fixed size.

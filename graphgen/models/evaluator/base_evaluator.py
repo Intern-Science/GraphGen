@@ -1,5 +1,4 @@
 import asyncio
-from dataclasses import dataclass
 
 from tqdm.asyncio import tqdm as tqdm_async
 
@@ -7,10 +6,10 @@ from graphgen.bases.datatypes import QAPair
 from graphgen.utils import create_event_loop
 
 
-@dataclass
 class BaseEvaluator:
-    max_concurrent: int = 100
-    results: list[float] = None
+    def __init__(self, max_concurrent: int = 100):
+        self.max_concurrent = max_concurrent
+        self.results: list[float] = None
 
     def evaluate(self, pairs: list[QAPair]) -> list[float]:
         """

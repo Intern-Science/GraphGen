@@ -53,6 +53,8 @@ class JsonKVStorage(BaseKVStorage):
 
 @dataclass
 class JsonListStorage(BaseListStorage):
+    working_dir: str = None
+    namespace: str = None
     _data: list = None
 
     def __post_init__(self):

@@ -1,12 +1,10 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
 from typing import Any, List
 
 from graphgen.bases.base_storage import BaseGraphStorage
 from graphgen.bases.datatypes import Community
 
 
-@dataclass
 class BasePartitioner(ABC):
     @abstractmethod
     async def partition(

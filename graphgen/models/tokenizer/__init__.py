@@ -1,4 +1,3 @@
-from dataclasses import dataclass, field
 from typing import List
 
 from graphgen.bases import BaseTokenizer
@@ -30,16 +29,13 @@ def get_tokenizer_impl(tokenizer_name: str = "cl100k_base") -> BaseTokenizer:
     )
 
 
-@dataclass
 class Tokenizer(BaseTokenizer):
     """
     Encapsulates different tokenization implementations based on the specified model name.
     """
 
-    model_name: str = "cl100k_base"
-    _impl: BaseTokenizer = field(init=False, repr=False)
-
-    def __post_init__(self):
+    def __init__(self, model_name: str = "cl100k_base"):
+        super().__init__(model_name)
         if not self.model_name:
             raise ValueError("TOKENIZER_MODEL must be specified in the ENV variables.")
         self._impl = get_tokenizer_impl(self.model_name)

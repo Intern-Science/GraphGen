@@ -1,5 +1,3 @@
-from dataclasses import dataclass
-
 import requests
 from fastapi import HTTPException
 
@@ -9,13 +7,13 @@ BING_SEARCH_V7_ENDPOINT = "https://api.bing.microsoft.com/v7.0/search"
 BING_MKT = "en-US"
 
 
-@dataclass
 class BingSearch:
     """
     Bing Search client to search with Bing.
     """
 
-    subscription_key: str
+    def __init__(self, subscription_key: str):
+        self.subscription_key = subscription_key
 
     def search(self, query: str, num_results: int = 1):
         """

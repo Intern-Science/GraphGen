@@ -16,7 +16,6 @@ class StorageNameSpace:
         """commit the storage operations after querying"""
 
 
-@dataclass
 class BaseListStorage(Generic[T], StorageNameSpace):
     async def all_items(self) -> list[T]:
         raise NotImplementedError
@@ -34,7 +33,6 @@ class BaseListStorage(Generic[T], StorageNameSpace):
         raise NotImplementedError
 
 
-@dataclass
 class BaseKVStorage(Generic[T], StorageNameSpace):
     async def all_keys(self) -> list[str]:
         raise NotImplementedError
@@ -58,7 +56,6 @@ class BaseKVStorage(Generic[T], StorageNameSpace):
         raise NotImplementedError
 
 
-@dataclass
 class BaseGraphStorage(StorageNameSpace):
     async def has_node(self, node_id: str) -> bool:
         raise NotImplementedError

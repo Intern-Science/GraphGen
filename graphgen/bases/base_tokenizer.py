@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
 from typing import List
 
 
-@dataclass
 class BaseTokenizer(ABC):
-    model_name: str = "cl100k_base"
+    def __init__(self, model_name: str = "cl100k_base"):
+        self.model_name = model_name
 
     @abstractmethod
     def encode(self, text: str) -> List[int]:

@@ -1,6 +1,5 @@
 import re
 from collections import Counter, defaultdict
-from dataclasses import dataclass
 from typing import Dict, List, Tuple
 
 from graphgen.bases import BaseGraphStorage, BaseKGBuilder, BaseLLMClient, Chunk
@@ -15,10 +14,10 @@ from graphgen.utils import (
 )
 
 
-@dataclass
 class LightRAGKGBuilder(BaseKGBuilder):
-    llm_client: BaseLLMClient = None
-    max_loop: int = 3
+    def __init__(self, llm_client: BaseLLMClient, max_loop: int = 3):
+        super().__init__(llm_client)
+        self.max_loop = max_loop
 
     async def extract(
         self, chunk: Chunk

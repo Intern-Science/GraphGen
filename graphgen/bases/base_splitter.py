@@ -1,25 +1,32 @@
 import copy
 import re
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
 from typing import Callable, Iterable, List, Literal, Optional, Union
 
 from graphgen.bases.datatypes import Chunk
 from graphgen.utils import logger
 
 
-@dataclass
 class BaseSplitter(ABC):
     """
     Abstract base class for splitting text into smaller chunks.
     """
 
-    chunk_size: int = 1024
-    chunk_overlap: int = 100
-    length_function: Callable[[str], int] = len
-    keep_separator: bool = False
-    add_start_index: bool = False
-    strip_whitespace: bool = True
+    def __init__(
+        self,
+        chunk_size: int = 1024,
+        chunk_overlap: int = 100,
+        length_function: Callable[[str], int] = len,
+        keep_separator: bool = False,
+        add_start_index: bool = False,
+        strip_whitespace: bool = True,
+    ):
+        self.chunk_size = chunk_size
+        self.chunk_overlap = chunk_overlap
+        self.length_function = length_function
+        self.keep_separator = keep_separator
+        self.add_start_index = add_start_index
+        self.strip_whitespace = strip_whitespace
 
     @abstractmethod
     def split_text(self, text: str) -> List[str]:

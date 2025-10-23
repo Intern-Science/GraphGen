@@ -1,0 +1,18 @@
+read:
+  input_file: resources/input_examples/protein_demo.json # input file path, support json, jsonl, txt, pdf. See resources/input_examples for examples
+split:
+  chunk_size: 1024 # chunk size for text splitting
+  chunk_overlap: 100 # chunk overlap for text splitting
+search: # web search configuration
+  enabled: false # whether to enable web search
+  search_types: ["google"] # search engine types, support: google, bing, uniprot, wikipedia
+quiz_and_judge: # quiz and test whether the LLM masters the knowledge points
+  enabled: false
+partition: # graph partition configuration
+  method: anchor_bfs # partition method
+  method_params:
+    anchor_type: protein # node type to select anchor nodes
+    max_units_per_community: 10 # atomic partition, one node or edge per community
+generate:
+  mode: protein_qa # atomic, aggregated, multi_hop, cot, vqa
+  data_format: ChatML # Alpaca, Sharegpt, ChatML

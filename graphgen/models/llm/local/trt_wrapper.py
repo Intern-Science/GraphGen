@@ -1,10 +1,15 @@
-# TODO: implement ollama client
 from typing import Any, List, Optional
 
-from graphgen.bases import BaseLLMClient, Token
+from graphgen.bases import BaseLLMWrapper
+from graphgen.bases.datatypes import Token
 
 
-class OllamaClient(BaseLLMClient):
+# TODO: implement TensorRTWrapper methods
+class TensorRTWrapper(BaseLLMWrapper):
+    """
+    Async inference backend based on TensorRT-LLM
+    """
+
     async def generate_answer(
         self, text: str, history: Optional[List[str]] = None, **extra: Any
     ) -> str:

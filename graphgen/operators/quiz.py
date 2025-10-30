@@ -3,13 +3,14 @@ from collections import defaultdict
 
 from tqdm.asyncio import tqdm as tqdm_async
 
-from graphgen.models import JsonKVStorage, NetworkXStorage, OpenAIClient
+from graphgen.bases import BaseLLMWrapper
+from graphgen.models import JsonKVStorage, NetworkXStorage
 from graphgen.templates import DESCRIPTION_REPHRASING_PROMPT
 from graphgen.utils import detect_main_language, logger
 
 
 async def quiz(
-    synth_llm_client: OpenAIClient,
+    synth_llm_client: BaseLLMWrapper,
     graph_storage: NetworkXStorage,
     rephrase_storage: JsonKVStorage,
     max_samples: int = 1,

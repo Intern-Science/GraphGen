@@ -2,13 +2,13 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from typing import Dict, List, Tuple
 
-from graphgen.bases.base_llm_client import BaseLLMClient
+from graphgen.bases.base_llm_wrapper import BaseLLMWrapper
 from graphgen.bases.base_storage import BaseGraphStorage
 from graphgen.bases.datatypes import Chunk
 
 
 class BaseKGBuilder(ABC):
-    def __init__(self, llm_client: BaseLLMClient):
+    def __init__(self, llm_client: BaseLLMWrapper):
         self.llm_client = llm_client
         self._nodes: Dict[str, List[dict]] = defaultdict(list)
         self._edges: Dict[Tuple[str, str], List[dict]] = defaultdict(list)

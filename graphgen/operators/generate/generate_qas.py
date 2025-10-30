@@ -1,6 +1,6 @@
 from typing import Any
 
-from graphgen.bases import BaseLLMClient
+from graphgen.bases import BaseLLMWrapper
 from graphgen.models import (
     AggregatedGenerator,
     AtomicGenerator,
@@ -12,7 +12,7 @@ from graphgen.utils import logger, run_concurrent
 
 
 async def generate_qas(
-    llm_client: BaseLLMClient,
+    llm_client: BaseLLMWrapper,
     batches: list[
         tuple[
             list[tuple[str, dict]], list[tuple[Any, Any, dict] | tuple[Any, Any, Any]]

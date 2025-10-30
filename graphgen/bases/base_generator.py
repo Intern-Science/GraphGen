@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
-from graphgen.bases.base_llm_client import BaseLLMClient
+from graphgen.bases.base_llm_wrapper import BaseLLMWrapper
 
 
 class BaseGenerator(ABC):
@@ -9,7 +9,7 @@ class BaseGenerator(ABC):
     Generate QAs based on given prompts.
     """
 
-    def __init__(self, llm_client: BaseLLMClient):
+    def __init__(self, llm_client: BaseLLMWrapper):
         self.llm_client = llm_client
 
     @staticmethod

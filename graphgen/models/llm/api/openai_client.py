@@ -10,7 +10,7 @@ from tenacity import (
     wait_exponential,
 )
 
-from graphgen.bases.base_llm_client import BaseLLMClient
+from graphgen.bases.base_llm_wrapper import BaseLLMWrapper
 from graphgen.bases.datatypes import Token
 from graphgen.models.llm.limitter import RPM, TPM
 
@@ -28,7 +28,7 @@ def get_top_response_tokens(response: openai.ChatCompletion) -> List[Token]:
     return tokens
 
 
-class OpenAIClient(BaseLLMClient):
+class OpenAIClient(BaseLLMWrapper):
     def __init__(
         self,
         *,

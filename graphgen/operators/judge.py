@@ -3,13 +3,14 @@ import math
 
 from tqdm.asyncio import tqdm as tqdm_async
 
-from graphgen.models import JsonKVStorage, NetworkXStorage, OpenAIClient
+from graphgen.bases import BaseLLMWrapper
+from graphgen.models import JsonKVStorage, NetworkXStorage
 from graphgen.templates import STATEMENT_JUDGEMENT_PROMPT
 from graphgen.utils import logger, yes_no_loss_entropy
 
 
 async def judge_statement(  # pylint: disable=too-many-statements
-    trainee_llm_client: OpenAIClient,
+    trainee_llm_client: BaseLLMWrapper,
     graph_storage: NetworkXStorage,
     rephrase_storage: JsonKVStorage,
     re_judge: bool = False,

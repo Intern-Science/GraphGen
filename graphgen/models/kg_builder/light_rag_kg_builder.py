@@ -2,7 +2,7 @@ import re
 from collections import Counter, defaultdict
 from typing import Dict, List, Tuple
 
-from graphgen.bases import BaseGraphStorage, BaseKGBuilder, BaseLLMClient, Chunk
+from graphgen.bases import BaseGraphStorage, BaseKGBuilder, BaseLLMWrapper, Chunk
 from graphgen.templates import KG_EXTRACTION_PROMPT, KG_SUMMARIZATION_PROMPT
 from graphgen.utils import (
     detect_main_language,
@@ -15,7 +15,7 @@ from graphgen.utils import (
 
 
 class LightRAGKGBuilder(BaseKGBuilder):
-    def __init__(self, llm_client: BaseLLMClient, max_loop: int = 3):
+    def __init__(self, llm_client: BaseLLMWrapper, max_loop: int = 3):
         super().__init__(llm_client)
         self.max_loop = max_loop
 

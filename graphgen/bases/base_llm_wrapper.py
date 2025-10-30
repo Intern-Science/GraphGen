@@ -8,7 +8,7 @@ from graphgen.bases.base_tokenizer import BaseTokenizer
 from graphgen.bases.datatypes import Token
 
 
-class BaseLLMClient(abc.ABC):
+class BaseLLMWrapper(abc.ABC):
     """
     LLM client base class, agnostic to specific backends (OpenAI / Ollama / ...).
     """
@@ -66,3 +66,9 @@ class BaseLLMClient(abc.ABC):
         think_pattern = re.compile(rf"<{think_tag}>.*?</{think_tag}>", re.DOTALL)
         filtered_text = think_pattern.sub("", text).strip()
         return filtered_text if filtered_text else text.strip()
+
+    def shutdown(self) -> None:
+        """Shutdown the LLM engine if applicable."""
+
+    def restart(self) -> None:
+        """Reinitialize the LLM engine if applicable."""

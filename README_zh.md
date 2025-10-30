@@ -20,19 +20,20 @@
 
 GraphGen: Enhancing Supervised Fine-Tuning for LLMs with Knowledge-Driven Synthetic Data Generation
 
-[English](README.md) | [中文](README_zh)
+[English](README.md) | [中文](README_zh.md)
 
 <details close>
 <summary><b>📚 目录</b></summary>
 
 - 📝 [什么是 GraphGen？](#-什么是-graphgen)
-- 📌 [最新更新](#最新更新)
-- 🚀 [快速开始](#快速开始)
-- 🏗️ [系统架构](#系统架构)
-- 🍀 [致谢](#致谢)
-- 📚 [引用](#引用)
-- 📜 [许可证](#许可证)
-- 📅 [星标历史](#星标历史)
+- 📌 [最新更新](#-最新更新)
+- ⚙️ [支持列表](#-支持列表)
+- 🚀 [快速开始](#-快速开始)
+- 🏗️ [系统架构](#-系统架构)
+- 🍀 [致谢](#-致谢)
+- 📚 [引用](#-引用)
+- 📜 [许可证](#-许可证)
+- 📅 [星标历史](#-星标历史)
 
 
 [//]: # (- 🌟 [主要特性](#主要特性))
@@ -48,13 +49,13 @@ GraphGen 是一个基于知识图谱的数据合成框架。请查看[**论文**
 
 以下是在超过 50 % 的 SFT 数据来自 GraphGen 及我们的数据清洗流程时的训练后结果：
 
-| 领域 | 数据集 | 我们的方案 | Qwen2.5-7B-Instruct（基线） |
-| :-: | :-: | :-: | :-: |
-| 植物 | [SeedBench](https://github.com/open-sciencelab/SeedBench) | **65.9** | 51.5 |
-| 常识 | CMMLU | 73.6 | **75.8** |
-| 知识 | GPQA-Diamond | **40.0** | 33.3 |
-| 数学 | AIME24 | **20.6** | 16.7 |
-| | AIME25 | **22.7** | 7.2 |
+| 领域 |                            数据集                            |  我们的方案   | Qwen2.5-7B-Instruct（基线） |
+|:--:|:---------------------------------------------------------:|:--------:|:-----------------------:|
+| 植物 | [SeedBench](https://github.com/open-sciencelab/SeedBench) | **65.9** |          51.5           |
+| 常识 |                           CMMLU                           |   73.6   |        **75.8**         |
+| 知识 |                       GPQA-Diamond                        | **40.0** |          33.3           |
+| 数学 |                          AIME24                           | **20.6** |          16.7           |
+|    |                          AIME25                           | **22.7** |           7.2           |
 
 GraphGen 首先根据源文本构建细粒度的知识图谱，然后利用期望校准误差指标识别大语言模型中的知识缺口，优先生成针对高价值长尾知识的问答对。  
 此外，GraphGen 采用多跳邻域采样捕获复杂关系信息，并使用风格控制生成来丰富问答数据的多样性。
@@ -62,19 +63,44 @@ GraphGen 首先根据源文本构建细粒度的知识图谱，然后利用期�
 在数据生成后，您可以使用[LLaMA-Factory](https://github.com/hiyouga/LLaMA-Factory) 和 [xtuner](https://github.com/InternLM/xtuner)对大语言模型进行微调。
 
 ## 📌 最新更新
-
+- **2025.10.30** 我们支持多种新的 LLM 客户端和推理后端，包括 [Ollama_client]([Ollama_client](https://github.com/open-sciencelab/GraphGen/blob/main/graphgen/models/llm/api/ollama_client.py), [http_client](https://github.com/open-sciencelab/GraphGen/blob/main/graphgen/models/llm/api/http_client.py), [HuggingFace Transformers](https://github.com/open-sciencelab/GraphGen/blob/main/graphgen/models/llm/local/hf_wrapper.py) 和 [SGLang](https://github.com/open-sciencelab/GraphGen/blob/main/graphgen/models/llm/local/sglang_wrapper.py).
 - **2025.10.23**：我们现在支持视觉问答（VQA）数据生成。运行脚本：`bash scripts/generate/generate_vqa.sh`。
 - **2025.10.21**：我们现在通过 [MinerU](https://github.com/opendatalab/MinerU) 支持 PDF 作为数据生成的输入格式。
-- **2025.09.29**：我们在 [Hugging Face](https://huggingface.co/spaces/chenzihong/GraphGen) 和 [ModelScope](https://modelscope.cn/studios/chenzihong/GraphGen) 上自动更新 Gradio 应用。
 
 <details>
 <summary>历史更新</summary>
 
+- **2025.09.29**：我们在 [Hugging Face](https://huggingface.co/spaces/chenzihong/GraphGen) 和 [ModelScope](https://modelscope.cn/studios/chenzihong/GraphGen) 上自动更新 Gradio 应用。
 - **2025.08.14**：支持利用 Leiden 社区发现算法对知识图谱进行社区划分，合成 CoT 数据。
 - **2025.07.31**：新增 Google、Bing、Wikipedia 和 UniProt 作为搜索后端，帮助填补数据缺口。  
 - **2025.04.21**：发布 GraphGen 初始版本。
 
 </details>
+
+## ⚙️ 支持列表
+
+我们支持多种 LLM 推理服务器、API 服务器、推理客户端、输入文件格式、数据模态、输出数据格式和输出数据类型。
+可以根据合成数据的需求进行灵活配置。
+
+| 推理服务器                                        | API 服务器                                                                        | 推理客户端                                                      | 输入文件格式                             | 数据模态         | 输出数据格式                       | 输出数据类型                                          |
+|----------------------------------------------|--------------------------------------------------------------------------------|------------------------------------------------------------|------------------------------------|--------------|------------------------------|-------------------------------------------------|
+| [![hf-icon]HF][hf]<br>[![sg-icon]SGLang][sg] | [![sif-icon]Silicon][sif]<br>[![oai-icon]OpenAI][oai]<br>[![az-icon]Azure][az] | HTTP<br>[![ol-icon]Ollama][ol]<br>[![oai-icon]OpenAI][oai] | CSV<br>JSON<br>JSONL<br>PDF<br>TXT | TEXT<br>TEXT | Alpaca<br>ChatML<br>Sharegpt | Aggregated<br>Atomic<br>CoT<br>Multi-hop<br>VQA |
+
+<!-- links -->
+[hf]: https://huggingface.co/docs/transformers/index
+[sg]: https://docs.sglang.ai
+[sif]: https://siliconflow.cn
+[oai]: https://openai.com
+[az]: https://azure.microsoft.com/en-us/services/cognitive-services/openai-service/
+[ol]: https://ollama.com
+
+<!-- icons -->
+[hf-icon]: https://www.google.com/s2/favicons?domain=https://huggingface.co
+[sg-icon]: https://www.google.com/s2/favicons?domain=https://docs.sglang.ai
+[sif-icon]: https://www.google.com/s2/favicons?domain=siliconflow.com
+[oai-icon]: https://www.google.com/s2/favicons?domain=https://openai.com
+[az-icon]: https://www.google.com/s2/favicons?domain=https://azure.microsoft.com
+[ol-icon]: https://www.google.com/s2/favicons?domain=https://ollama.com
 
 
 ## 🚀 快速开始

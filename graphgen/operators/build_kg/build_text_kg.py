@@ -3,14 +3,15 @@ from typing import List
 
 import gradio as gr
 
+from graphgen.bases import BaseLLMWrapper
 from graphgen.bases.base_storage import BaseGraphStorage
 from graphgen.bases.datatypes import Chunk
-from graphgen.models import LightRAGKGBuilder, OpenAIClient
+from graphgen.models import LightRAGKGBuilder
 from graphgen.utils import run_concurrent
 
 
 async def build_text_kg(
-    llm_client: OpenAIClient,
+    llm_client: BaseLLMWrapper,
     kg_instance: BaseGraphStorage,
     chunks: List[Chunk],
     progress_bar: gr.Progress = None,

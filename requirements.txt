@@ -1,7 +1,7 @@
 tqdm~=4.67.1
 openai~=1.99.1
 python-dotenv~=1.0.1
-numpy~=2.2.6
+numpy<1.26
 networkx~=3.4.2
 graspologic
 tiktoken~=0.8.0

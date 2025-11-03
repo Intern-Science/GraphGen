@@ -6,7 +6,7 @@ from .generator import (
     MultiHopGenerator,
     VQAGenerator,
 )
-from .kg_builder import LightRAGKGBuilder, MMKGBuilder
+from .kg_builder import LightRAGKGBuilder, MMKGBuilder, MOKGBuilder
 from .llm import HTTPClient, OllamaClient, OpenAIClient
 from .partitioner import (
     AnchorBFSPartitioner,

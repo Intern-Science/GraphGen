@@ -1,5 +1,5 @@
 read:
-  input_file: resources/input_examples/protein_qa_demo.txt # input file path, support json, jsonl, txt, pdf. See resources/input_examples for examples
+  input_file: resources/input_examples/protein_qa_demo.json # input file path, support json, jsonl, txt, pdf. See resources/input_examples for examples
   anchor_type: protein # get protein information from chunks
 split:
   chunk_size: 1024 # chunk size for text splitting

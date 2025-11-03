@@ -30,7 +30,12 @@ async def build_kg(
     """
 
     text_chunks = [chunk for chunk in chunks if chunk.type == "text"]
-    mm_chunks = [chunk for chunk in chunks if chunk.type != "text"]
+    mm_chunks = [
+        chunk
+        for chunk in chunks
+        if chunk.type in ("image", "video", "table", "formula")
+    ]
+    mo_chunks = [chunk for chunk in chunks if chunk.type in ("genome", "protein")]
 
     if len(text_chunks) == 0:
         logger.info("All text chunks are already in the storage")
@@ -42,6 +47,7 @@ async def build_kg(
             chunks=text_chunks,
             progress_bar=progress_bar,
         )
+
     if len(mm_chunks) == 0:
         logger.info("All multi-modal chunks are already in the storage")
     else:
@@ -53,16 +59,15 @@ async def build_kg(
             progress_bar=progress_bar,
         )
 
-    if anchor_type is not None:
-        logger.info("Anchoring data based on %s ...", anchor_type)
-        if anchor_type == "protein":
-            await build_mo_kg(
-                llm_client=llm_client,
-                kg_instance=kg_instance,
-                chunks=text_chunks,
-                progress_bar=progress_bar,
-            )
-        else:
-            logger.error("Anchor type %s is not supported yet.", anchor_type)
+    if len(mo_chunks) == 0:
+        logger.info("All multi-omics chunks are already in the storage")
+    else:
+        logger.info("[Multi-omics Entity and Relation Extraction] processing ...")
+        await build_mo_kg(
+            llm_client=llm_client,
+            kg_instance=kg_instance,
+            chunks=mo_chunks,
+            progress_bar=progress_bar,
+        )
 
     return kg_instance

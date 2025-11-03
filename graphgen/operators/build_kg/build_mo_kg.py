@@ -1,4 +1,4 @@
-import json
+from collections import defaultdict
 from typing import List
 
 import gradio as gr
@@ -6,8 +6,8 @@ import gradio as gr
 from graphgen.bases import BaseLLMWrapper
 from graphgen.bases.base_storage import BaseGraphStorage
 from graphgen.bases.datatypes import Chunk
-from graphgen.templates import PROTEIN_ANCHOR_PROMPT, PROTEIN_KG_EXTRACTION_PROMPT
-from graphgen.utils import detect_main_language, logger, run_concurrent
+from graphgen.models import MOKGBuilder
+from graphgen.utils import run_concurrent
 
 
 async def build_mo_kg(
@@ -25,53 +25,34 @@ async def build_mo_kg(
     :return:
     """
 
-    async def extract_mo_info(chunk: Chunk):
-        content = chunk.content
-        language = detect_main_language(content)
-        prompt = PROTEIN_ANCHOR_PROMPT[language].format(chunk=content)
-        result = await llm_client.generate_answer(prompt)
-        try:
-            json_result = json.loads(result)
-            return json_result
-        except json.JSONDecodeError:
-            logger.warning("Failed to parse JSON from LLM response: %s", result)
-            return {}
+    mo_builder = MOKGBuilder(llm_client=llm_client)
 
     results = await run_concurrent(
-        extract_mo_info,
+        mo_builder.extract,
         chunks,
-        desc="Extracting multi-omics anchoring information from chunks",
+        desc="[2/4] Extracting entities and relationships from multi-omics chunks",
         unit="chunk",
         progress_bar=progress_bar,
     )
-    # Merge results
-    from collections import defaultdict
 
-    bags = defaultdict(set)
-    for item in results:
-        for k, v in item.items():
-            if v is not None and str(v).strip():
-                bags[k].add(str(v).strip())
+    nodes = defaultdict(list)
+    edges = defaultdict(list)
+    for n, e in results:
+        for k, v in n.items():
+            nodes[k].extend(v)
+        for k, v in e.items():
+            edges[tuple(sorted(k))].extend(v)
 
-    merged = {
-        k: " | ".join(sorted(v)) if len(v) > 1 else next(iter(v))
-        for k, v in bags.items()
-    }
-
-    # TODO: search database for more info
-    # try:
-    #     search_results = await search(merged["Protein accession or ID"])
-    # except Exception as e:
-    #     logger.warning("Failed to search for protein info: %s", e)
-    #     search_results = {}
-
-    mo_text = "\n".join([f"{k}: {v}" for k, v in merged.items()])
-    lang = detect_main_language(mo_text)
-    prompt = PROTEIN_KG_EXTRACTION_PROMPT[lang].format(
-        input_text=mo_text,
-        **PROTEIN_KG_EXTRACTION_PROMPT["FORMAT"],
+    await run_concurrent(
+        lambda kv: mo_builder.merge_nodes(kv, kg_instance=kg_instance),
+        list(nodes.items()),
+        desc="Inserting entities into storage",
     )
-    kg_output = await llm_client.generate_answer(prompt)
-    print(kg_output)
-    # TODO: parse kg_output and insert into kg_instance
+
+    await run_concurrent(
+        lambda kv: mo_builder.merge_edges(kv, kg_instance=kg_instance),
+        list(edges.items()),
+        desc="Inserting relationships into storage",
+    )
+
     return kg_instance

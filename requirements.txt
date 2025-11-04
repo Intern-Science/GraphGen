@@ -24,5 +24,8 @@ leidenalg
 igraph
 python-louvain
 
+# Bioinformatics
+biopython
+
 # For visualization
 matplotlib

@@ -24,13 +24,6 @@
         "content": "Table 1. Protease sensitivity of the HR-eliciting activity of whole cells of E. amylovora Ea321(pCPP430). Cells were grown in LB medium, harvested'by centrifugation, and resuspended in 0.1 volume of $5 m M$ potassium phosphate $( \\mathsf { p H } \\thinspace 6 . 5 )$ containing tetracycline (40 $\\mu { \\sf g } / { \\sf m } 1 )$ . After incubation with protease (Sigma P5147), as indicated, at $\\mathfrak { s } 7 ^ { \\circ } \\mathfrak { C }$ for 5 min, $1 0 0 ~ \\mu !$ of each cell suspension was infiltrated into tobacco leaves. Leaf sector collapse was assayed at 24 hours. At the time of infiltration, portions of protease-treated cell mixtures were iysed, held'in boiling water for 10 min, centrifuged for 10 min at $1 2 . 0 0 0 g .$ and electrophoresed on a $10 \\%$ SDS-polyacrylamide gel to detect harpin. Electrophoresis was done for 2 hours at $1 5 m \\mathsf { A }$ followed by staining with Coomassie blue R-250. Cell-free supernatant, produced from the LB culture, was filter-sterilized and then concentrated with the Centriprep-10 (Amicon, Danvers, Massachusetts). "
     },
     {
-        "type": "table",
-        "img_path": "resources/input_examples/images/0f25783fdfa99042db274ba9f6b3064cf17c5435814edfbee42ae6b19aac37d2.jpg",
-        "table_caption": [],
-        "table_footnote": [],
-        "table_body": "<table><tr><td>Protease per milliter</td><td>Tissue collapse</td><td>Harpin detected</td></tr><tr><td>0</td><td>+</td><td>+</td></tr><tr><td>5μg</td><td>+</td><td>+</td></tr><tr><td>10μg</td><td>+</td><td>+</td></tr><tr><td>20 μg</td><td>Weak</td><td>+</td></tr><tr><td>40 μg</td><td>-</td><td></td></tr><tr><td>80μg</td><td>一</td><td></td></tr><tr><td>80μg + 0.5 mM PMSF</td><td>+</td><td>+</td></tr><tr><td>Cell-free supernatant</td><td></td><td></td></tr></table>"
-    },
-    {
         "type": "text",
         "content": "expressed fom pCPP1084 in the T7RNA (20). Insertions of Tn5tac1 in hrpN (21) (Fig. 1) abolished the ability of E. coli $\\mathsf { D H } 5 \\alpha ( \\mathsf { p C P P } 4 3 0 )$ to elicit HR on tobacco or produce harpin detectable on Western blots. Ea321T5, a derivative of E. amylo"
     },

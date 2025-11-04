@@ -1,7 +1,7 @@
 tqdm~=4.67.1
 openai~=1.99.1
 python-dotenv~=1.0.1
-numpy~=2.2.6
+numpy~=1.26.4
 networkx~=3.4.2
 graspologic
 tiktoken~=0.8.0
@@ -19,7 +19,7 @@ langcodes~=3.4.1
 requests~=2.32.4
 fastapi~=0.115.6
 trafilatura~=2.0.0
-gensim~=4.4.3
+gensim~=4.3.3
 
 leidenalg~=0.10.2
 igraph~=0.11.9

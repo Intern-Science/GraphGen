@@ -4,6 +4,7 @@ from .generator import (
     AtomicGenerator,
     CoTGenerator,
     MultiHopGenerator,
+    ProteinQAGenerator,
     VQAGenerator,
 )
 from .kg_builder import LightRAGKGBuilder, MMKGBuilder, MOKGBuilder

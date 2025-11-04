@@ -56,13 +56,62 @@ async def partition_kg(
     logger.info("Partitioned the graph into %d communities.", len(communities))
     batches = await partitioner.community2batch(communities, g=kg_instance)
 
-    for _, batch in enumerate(batches):
-        nodes, edges = batch
-        for node_id, node_data in nodes:
-            entity_type = node_data.get("entity_type")
-            if entity_type and "image" in entity_type.lower():
-                node_id = node_id.strip('"').lower()
-                image_data = await chunk_storage.get_by_id(node_id)
-                if image_data:
-                    node_data["images"] = image_data
+    batches = await attach_additional_data_to_node(batches, chunk_storage)
     return batches
+
+
+async def attach_additional_data_to_node(
+    batches: list[
+        tuple[
+            list[tuple[str, dict]], list[tuple[Any, Any, dict] | tuple[Any, Any, Any]]
+        ]
+    ],
+    chunk_storage: BaseKVStorage,
+) -> list[
+    tuple[list[tuple[str, dict]], list[tuple[Any, Any, dict] | tuple[Any, Any, Any]]]
+]:
+    """入口函数：为所有节点追加额外数据。"""
+    for batch in batches:
+        for node_id, node_data in batch[0]:
+            await _attach_by_type(node_id, node_data, chunk_storage)
+    return batches
+
+
+async def _attach_by_type(
+    node_id: str,
+    node_data: dict,
+    chunk_storage: BaseKVStorage,
+) -> None:
+    """根据 entity_type 给单个节点追加额外数据。"""
+    entity_type = (node_data.get("entity_type") or "").lower()
+    if not entity_type:
+        return
+
+    # 统一取 source_id
+    source_ids = [
+        sid.strip()
+        for sid in node_data.get("source_id", "").split("<SEP>")
+        if sid.strip()
+    ]
+
+    # 处理图片
+    if "image" in entity_type:
+        captions = [
+            data["image_caption"]
+            for sid in source_ids
+            if "image" in sid.lower() and (data := await chunk_storage.get_by_id(sid))
+        ]
+        if captions:
+            node_data["images"] = captions
+            logger.debug("Attached image data to node %s", node_id)
+
+    # 处理蛋白
+    if "protein" in entity_type:
+        captions = [
+            data["protein_caption"]
+            for sid in source_ids
+            if "protein" in sid.lower() and (data := await chunk_storage.get_by_id(sid))
+        ]
+        if captions:
+            node_data["protein"] = captions
+            logger.debug("Attached protein data to node %s", node_id)

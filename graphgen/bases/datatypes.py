@@ -15,7 +15,7 @@ class Chunk:
         return Chunk(
             id=key,
             content=data.get("content", ""),
-            type=data.get("type", "unknown"),
+            type=data.get("type", "text"),
             metadata={k: v for k, v in data.items() if k != "content"},
         )
 

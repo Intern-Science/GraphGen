@@ -40,7 +40,7 @@ async def generate_qas(
         generator = MultiHopGenerator(llm_client)
     elif mode == "cot":
         generator = CoTGenerator(llm_client)
-    elif mode == "vqa":
+    elif mode in ["vqa"]:
         generator = VQAGenerator(llm_client)
     else:
         raise ValueError(f"Unsupported generation mode: {mode}")

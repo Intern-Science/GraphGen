@@ -19,6 +19,7 @@ langcodes
 requests
 fastapi
 trafilatura
+aiohttp
 
 leidenalg
 igraph

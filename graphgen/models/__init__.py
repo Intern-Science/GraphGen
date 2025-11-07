@@ -30,5 +30,5 @@ from .search.kg.wiki_search import WikiSearch
 from .search.web.bing_search import BingSearch
 from .search.web.google_search import GoogleSearch
 from .splitter import ChineseRecursiveTextSplitter, RecursiveCharacterSplitter
-from .storage import JsonKVStorage, JsonListStorage, NetworkXStorage
+from .storage import JsonKVStorage, JsonListStorage, MetaJsonKVStorage, NetworkXStorage
 from .tokenizer import Tokenizer

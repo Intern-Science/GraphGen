@@ -1,22 +1,28 @@
-read:
-  input_file: resources/input_examples/jsonl_demo.jsonl # input file path, support json, jsonl, txt, pdf. See resources/input_examples for examples
-split:
-  chunk_size: 1024 # chunk size for text splitting
-  chunk_overlap: 100 # chunk overlap for text splitting
-search: # web search configuration
-  enabled: false # whether to enable web search
-  search_types: ["google"] # search engine types, support: google, bing, uniprot, wikipedia
-quiz_and_judge: # quiz and test whether the LLM masters the knowledge points
-  enabled: true
-  quiz_samples: 2 # number of quiz samples to generate
-  re_judge: false # whether to re-judge the existing quiz samples
-partition: # graph partition configuration
-  method: ece # ece is a custom partition method based on comprehension loss
-  method_params:
-    max_units_per_community: 20 # max nodes and edges per community
-    min_units_per_community: 5 # min nodes and edges per community
-    max_tokens_per_community: 10240 # max tokens per community
-    unit_sampling: max_loss # unit sampling strategy, support: random, max_loss, min_loss
-generate:
-  mode: aggregated # atomic, aggregated, multi_hop, cot, vqa
-  data_format: ChatML # Alpaca, Sharegpt, ChatML
+pipeline:
+  - name: read
+    params:
+      input_file: resources/input_examples/jsonl_demo.jsonl # input file path, support json, jsonl, txt, pdf. See resources/input_examples for examples
+      chunk_size: 1024 # chunk size for text splitting
+      chunk_overlap: 100 # chunk overlap for text splitting
+
+  - name: build_kg
+
+  - name: quiz_and_judge
+    params:
+      quiz_samples: 2 # number of quiz samples to generate
+      re_judge: false # whether to re-judge the existing quiz samples
+
+  - name: partition
+    deps: [quiz_and_judge] # ece depends on quiz_and_judge steps
+    params:
+      method: ece # ece is a custom partition method based on comprehension loss
+      method_params:
+        max_units_per_community: 20 # max nodes and edges per community
+        min_units_per_community: 5 # min nodes and edges per community
+        max_tokens_per_community: 10240 # max tokens per community
+        unit_sampling: max_loss # unit sampling strategy, support: random, max_loss, min_loss
+
+  - name: generate
+    params:
+      method: aggregated # atomic, aggregated, multi_hop, cot, vqa
+      data_format: ChatML # Alpaca, Sharegpt, ChatML

@@ -1,19 +1,18 @@
-read:
-  input_file: resources/input_examples/json_demo.json # input file path, support json, jsonl, txt, csv, pdf. See resources/input_examples for examples
-split:
-  chunk_size: 1024 # chunk size for text splitting
-  chunk_overlap: 100 # chunk overlap for text splitting
-search: # web search configuration
-  enabled: false # whether to enable web search
-  search_types: ["google"] # search engine types, support: google, bing, uniprot, wikipedia
-quiz_and_judge: # quiz and test whether the LLM masters the knowledge points
-  enabled: true
-  quiz_samples: 2 # number of quiz samples to generate
-  re_judge: false # whether to re-judge the existing quiz samples
-partition: # graph partition configuration
-  method: dfs # partition method, support: dfs, bfs, ece, leiden
-  method_params:
-    max_units_per_community: 1 # atomic partition, one node or edge per community
-generate:
-  mode: atomic # atomic, aggregated, multi_hop, cot, vqa
-  data_format: Alpaca # Alpaca, Sharegpt, ChatML
+pipeline:
+  - name: read
+    params:
+      input_file: resources/input_examples/json_demo.json # input file path, support json, jsonl, txt, csv, pdf. See resources/input_examples for examples
+      chunk_size: 1024 # chunk size for text splitting
+      chunk_overlap: 100 # chunk overlap for text splitting
+
+  - name: build_kg
+
+  - name: partition
+    params:
+      method: dfs # partition method, support: dfs, bfs, ece, leiden
+      method_params:
+        max_units_per_community: 1 # atomic partition, one node or edge per community
+  - name: generate
+    params:
+      method: atomic # atomic, aggregated, multi_hop, cot, vqa
+      data_format: Alpaca # Alpaca, Sharegpt, ChatML

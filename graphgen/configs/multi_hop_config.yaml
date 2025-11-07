@@ -1,22 +1,22 @@
-read:
-  input_file: resources/input_examples/csv_demo.csv # input file path, support json, jsonl, txt, pdf. See resources/input_examples for examples
-split:
-  chunk_size: 1024 # chunk size for text splitting
-  chunk_overlap: 100 # chunk overlap for text splitting
-search: # web search configuration
-  enabled: false # whether to enable web search
-  search_types: ["google"] # search engine types, support: google, bing, uniprot, wikipedia
-quiz_and_judge: # quiz and test whether the LLM masters the knowledge points
-  enabled: false
-  quiz_samples: 2 # number of quiz samples to generate
-  re_judge: false # whether to re-judge the existing quiz samples
-partition: # graph partition configuration
-  method: ece # ece is a custom partition method based on comprehension loss
-  method_params:
-    max_units_per_community: 3 # max nodes and edges per community, for multi-hop, we recommend setting it to 3
-    min_units_per_community: 3 # min nodes and edges per community, for multi-hop, we recommend setting it to 3
-    max_tokens_per_community: 10240 # max tokens per community
-    unit_sampling: random # unit sampling strategy, support: random, max_loss, min_loss
-generate:
-  mode: multi_hop # atomic, aggregated, multi_hop, cot, vqa
-  data_format: ChatML # Alpaca, Sharegpt, ChatML
+pipeline:
+  - name: read
+    params:
+      input_file: resources/input_examples/csv_demo.csv # input file path, support json, jsonl, txt, pdf. See resources/input_examples for examples
+      chunk_size: 1024 # chunk size for text splitting
+      chunk_overlap: 100 # chunk overlap for text splitting
+
+  - name: build_kg
+
+  - name: partition
+    params:
+      method: ece # ece is a custom partition method based on comprehension loss
+      method_params:
+        max_units_per_community: 3 # max nodes and edges per community, for multi-hop, we recommend setting it to 3
+        min_units_per_community: 3 # min nodes and edges per community, for multi-hop, we recommend setting it to 3
+        max_tokens_per_community: 10240 # max tokens per community
+        unit_sampling: random # unit sampling strategy, support: random, max_loss, min_loss
+
+  - name: generate
+    params:
+      method: multi_hop # atomic, aggregated, multi_hop, cot, vqa
+      data_format: ChatML # Alpaca, Sharegpt, ChatML

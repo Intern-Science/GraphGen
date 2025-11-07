@@ -29,21 +29,21 @@ async def generate_qas(
     :param progress_bar
     :return: QA pairs
     """
-    mode = generation_config["mode"]
-    logger.info("[Generation] mode: %s, batches: %d", mode, len(batches))
+    method = generation_config["method"]
+    logger.info("[Generation] mode: %s, batches: %d", method, len(batches))
 
-    if mode == "atomic":
+    if method == "atomic":
         generator = AtomicGenerator(llm_client)
-    elif mode == "aggregated":
+    elif method == "aggregated":
         generator = AggregatedGenerator(llm_client)
-    elif mode == "multi_hop":
+    elif method == "multi_hop":
         generator = MultiHopGenerator(llm_client)
-    elif mode == "cot":
+    elif method == "cot":
         generator = CoTGenerator(llm_client)
-    elif mode in ["vqa"]:
+    elif method in ["vqa"]:
         generator = VQAGenerator(llm_client)
     else:
-        raise ValueError(f"Unsupported generation mode: {mode}")
+        raise ValueError(f"Unsupported generation mode: {method}")
 
     results = await run_concurrent(
         generator.generate,

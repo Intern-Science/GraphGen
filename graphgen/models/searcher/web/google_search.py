@@ -9,9 +9,9 @@ GOOGLE_SEARCH_ENDPOINT = "https://customsearch.googleapis.com/customsearch/v1"
 class GoogleSearch:
     def __init__(self, subscription_key: str, cx: str):
         """
-        Initialize the Google Search client with the subscription key and custom search engine ID.
+        Initialize the Google Search client with the subscription key and custom searcher engine ID.
         :param subscription_key: Your Google API subscription key.
-        :param cx: Your custom search engine ID.
+        :param cx: Your custom searcher engine ID.
         """
         self.subscription_key = subscription_key
         self.cx = cx
@@ -19,9 +19,9 @@ class GoogleSearch:
     def search(self, query: str, num_results: int = 1):
         """
         Search with Google and return the contexts.
-        :param query: The search query.
+        :param query: The searcher query.
         :param num_results: The number of results to return.
-        :return: A list of search results.
+        :return: A list of searcher results.
         """
         params = {
             "key": self.subscription_key,

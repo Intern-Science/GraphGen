@@ -25,10 +25,10 @@ from .reader import (
     RDFReader,
     TXTReader,
 )
-from .search.db.uniprot_search import UniProtSearch
-from .search.kg.wiki_search import WikiSearch
-from .search.web.bing_search import BingSearch
-from .search.web.google_search import GoogleSearch
+from .searcher.db.uniprot_searcher import UniProtSearch
+from .searcher.kg.wiki_search import WikiSearch
+from .searcher.web.bing_search import BingSearch
+from .searcher.web.google_search import GoogleSearch
 from .splitter import ChineseRecursiveTextSplitter, RecursiveCharacterSplitter
 from .storage import JsonKVStorage, JsonListStorage, MetaJsonKVStorage, NetworkXStorage
 from .tokenizer import Tokenizer

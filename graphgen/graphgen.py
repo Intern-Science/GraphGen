@@ -58,7 +58,6 @@ class GraphGen:
         self.meta_storage: MetaJsonKVStorage = MetaJsonKVStorage(
             self.working_dir, namespace="_meta"
         )
-
         self.full_docs_storage: JsonKVStorage = JsonKVStorage(
             self.working_dir, namespace="full_docs"
         )
@@ -69,9 +68,8 @@ class GraphGen:
             self.working_dir, namespace="graph"
         )
         self.search_storage: JsonKVStorage = JsonKVStorage(
-            self.working_dir, namespace="search"
+            self.working_dir, namespace="searcher"
         )
-
         self.rephrase_storage: JsonKVStorage = JsonKVStorage(
             self.working_dir, namespace="rephrase"
         )
@@ -181,41 +179,33 @@ class GraphGen:
 
         return _add_entities_and_relations
 
-    @op("search", deps=["chunk"])
+    @op("search", deps=["read"])
     @async_to_sync_method
     async def search(self, search_config: Dict):
-        logger.info(
-            "Search is %s", "enabled" if search_config["enabled"] else "disabled"
-        )
-        if search_config["enabled"]:
-            logger.info("[Search] %s ...", ", ".join(search_config["search_types"]))
-            all_nodes = await self.graph_storage.get_all_nodes()
-            all_nodes_names = [node[0] for node in all_nodes]
-            new_search_entities = await self.full_docs_storage.filter_keys(
-                all_nodes_names
-            )
-            logger.info(
-                "[Search] Found %d entities to search", len(new_search_entities)
-            )
-            _add_search_data = await search_all(
-                search_types=search_config["search_types"],
-                search_entities=new_search_entities,
-            )
-            if _add_search_data:
-                await self.search_storage.upsert(_add_search_data)
-                logger.info("[Search] %d entities searched", len(_add_search_data))
+        logger.info("[Search] %s ...", ", ".join(search_config["data_sources"]))
 
-                # Format search results for inserting
-                search_results = []
-                for _, search_data in _add_search_data.items():
-                    search_results.extend(
-                        [
-                            {"content": search_data[key]}
-                            for key in list(search_data.keys())
-                        ]
-                    )
-                # TODO: fix insert after search
-                # await self.insert()
+        seeds = await self.meta_storage.get_new_data(self.full_docs_storage)
+        if len(seeds) == 0:
+            logger.warning("All documents are already been searched")
+            return
+        search_results = await search_all(
+            seed_data=seeds,
+            **search_config,
+        )
+
+        _add_search_keys = await self.search_storage.filter_keys(
+            list(search_results.keys())
+        )
+        search_results = {
+            k: v for k, v in search_results.items() if k in _add_search_keys
+        }
+        if len(search_results) == 0:
+            logger.warning("All search results are already in the storage")
+            return
+        await self.search_storage.upsert(search_results)
+        await self.search_storage.index_done_callback()
+        await self.meta_storage.mark_done(self.full_docs_storage)
+        await self.meta_storage.index_done_callback()
 
     @op("quiz_and_judge", deps=["build_kg"])
     @async_to_sync_method

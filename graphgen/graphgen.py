@@ -68,7 +68,7 @@ class GraphGen:
             self.working_dir, namespace="graph"
         )
         self.search_storage: JsonKVStorage = JsonKVStorage(
-            self.working_dir, namespace="searcher"
+            self.working_dir, namespace="search"
         )
         self.rephrase_storage: JsonKVStorage = JsonKVStorage(
             self.working_dir, namespace="rephrase"
@@ -190,7 +190,7 @@ class GraphGen:
             return
         search_results = await search_all(
             seed_data=seeds,
-            **search_config,
+            search_config=search_config,
         )
 
         _add_search_keys = await self.search_storage.filter_keys(

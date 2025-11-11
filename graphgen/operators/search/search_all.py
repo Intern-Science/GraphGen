@@ -14,22 +14,25 @@ from graphgen.utils import logger, run_concurrent
 
 async def search_all(
     seed_data: dict,
-    data_sources: list[str],
+    search_config: dict,
 ) -> dict:
     """
     Perform searches across multiple search types and aggregate the results.
     :param seed_data: A dictionary containing seed data with entity names.
-    :param data_sources: A list of search types to perform (e.g., "wikipedia", "google", "bing", "uniprot").
+    :param search_config: A dictionary specifying which data sources to use for searching.
     :return: A dictionary with
     """
 
     results = {}
+    data_sources = search_config.get("data_sources", [])
 
     for data_source in data_sources:
         if data_source == "uniprot":
             from graphgen.models import UniProtSearch
 
-            uniprot_search_client = UniProtSearch()
+            uniprot_search_client = UniProtSearch(
+                **search_config.get("uniprot_params", {})
+            )
 
             data = list(seed_data.values())
             data = [d["content"] for d in data if "content" in d]

@@ -1,8 +1,11 @@
 pipeline:
   - name: read
     params:
-      input_file: resources/input_examples/search_demo.jsonl # input file path, support json, jsonl, txt, pdf. See resources/input_examples for examples
+      input_file:  resources/input_examples/search_demo.json # input file path, support json, jsonl, txt, pdf. See resources/input_examples for examples
 
   - name: search
     params:
       data_sources: [uniprot] # data source for searcher, support: wikipedia, google, uniprot
+      uniprot_params:
+        use_local_blast: true # whether to use local blast for uniprot search
+        local_blast_db: /your_path/uniprot_sprot

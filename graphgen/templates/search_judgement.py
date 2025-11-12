@@ -1,16 +1,16 @@
 # pylint: disable=C0301
 
 TEMPLATE: str = """-Goal-
-Please select the most relevant search result for the given entity. 
-The name and description of the entity are provided. The search results are provided as a list.
-Please select the most relevant search result from the list. If none of the search results are relevant, please select 'None of the above'.
+Please select the most relevant searcher result for the given entity. 
+The name and description of the entity are provided. The searcher results are provided as a list.
+Please select the most relevant searcher result from the list. If none of the searcher results are relevant, please select 'None of the above'.
 
 Steps:
 1. Read the name and description of the entity.
 
-2. Read the search results. For each search result, compare it with the entity name and description to determine if it is relevant.
+2. Read the searcher results. For each searcher result, compare it with the entity name and description to determine if it is relevant.
 
-3. Select the most relevant search result from the list. If none of the search results are relevant, select 'None of the above'.
+3. Select the most relevant searcher result from the list. If none of the searcher results are relevant, select 'None of the above'.
 
 4. Output your selection directly, please do not provide any additional information.
 

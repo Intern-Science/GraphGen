@@ -75,7 +75,8 @@ class NetworkXStorage(BaseGraphStorage):
 
     def __post_init__(self):
         """
-        如果图文件存在，则加载图文件，否则创建一个新图
+        Initialize the NetworkX graph storage by loading an existing graph from a GraphML file,
+        if it exists, or creating a new empty graph otherwise.
         """
         self._graphml_xml_file = os.path.join(
             self.working_dir, f"{self.namespace}.graphml"

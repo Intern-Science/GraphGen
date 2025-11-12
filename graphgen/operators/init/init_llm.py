@@ -12,12 +12,8 @@ class LLMFactory:
     - http_api: HTTPClient
     - openai_api: OpenAIClient
     - ollama_api: OllamaClient
-    - ollama: OllamaWrapper
-    - deepspeed: DeepSpeedWrapper
     - huggingface: HuggingFaceWrapper
-    - tgi: TGIWrapper
     - sglang: SGLangWrapper
-    - tensorrt: TensorRTWrapper
     """
 
     @staticmethod
@@ -43,15 +39,15 @@ class LLMFactory:
             from graphgen.models.llm.local.hf_wrapper import HuggingFaceWrapper
 
             return HuggingFaceWrapper(**config)
-        # if backend == "sglang":
-        #     from graphgen.models.llm.local.sglang_wrapper import SGLangWrapper
+        if backend == "sglang":
+            from graphgen.models.llm.local.sglang_wrapper import SGLangWrapper
+
+            return SGLangWrapper(**config)
+
+        # if backend == "vllm":
+        #     from graphgen.models.llm.local.vllm_wrapper import VLLMWrapper
         #
-        #     return SGLangWrapper(**config)
-
-        if backend == "vllm":
-            from graphgen.models.llm.local.vllm_wrapper import VLLMWrapper
-
-            return VLLMWrapper(**config)
+        #     return VLLMWrapper(**config)
 
         raise NotImplementedError(f"Backend {backend} is not implemented yet.")
 

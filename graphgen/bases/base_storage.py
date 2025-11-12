@@ -45,6 +45,9 @@ class BaseKVStorage(Generic[T], StorageNameSpace):
     ) -> list[Union[T, None]]:
         raise NotImplementedError
 
+    async def get_all(self) -> dict[str, T]:
+        raise NotImplementedError
+
     async def filter_keys(self, data: list[str]) -> set[str]:
         """return un-exist keys"""
         raise NotImplementedError

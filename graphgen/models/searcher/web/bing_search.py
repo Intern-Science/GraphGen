@@ -9,7 +9,7 @@ BING_MKT = "en-US"
 
 class BingSearch:
     """
-    Bing Search client to search with Bing.
+    Bing Search client to searcher with Bing.
     """
 
     def __init__(self, subscription_key: str):
@@ -18,9 +18,9 @@ class BingSearch:
     def search(self, query: str, num_results: int = 1):
         """
         Search with Bing and return the contexts.
-        :param query: The search query.
+        :param query: The searcher query.
         :param num_results: The number of results to return.
-        :return: A list of search results.
+        :return: A list of searcher results.
         """
         params = {"q": query, "mkt": BING_MKT, "count": num_results}
         response = requests.get(

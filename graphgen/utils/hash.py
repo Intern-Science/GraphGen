@@ -21,3 +21,8 @@ def compute_mm_hash(item, prefix: str = ""):
     else:
         content = str(item)
     return prefix + md5(content.encode()).hexdigest()
+
+
+def compute_dict_hash(d: dict, prefix: str = ""):
+    items = tuple(sorted(d.items()))
+    return prefix + md5(str(items).encode()).hexdigest()

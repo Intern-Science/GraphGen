@@ -1,57 +1,32 @@
 [
     {
-        "type": "text",
-        "content": "The $4 4 - \\mathbf { k D }$ protein, named harpin, was electroeluted from a preparative SDS-polyacrylamide gel (12). At concentrations ${ \\ge } 5 0 0 \\mathbf { n } \\mathbf { M }$ $( \\geq 2 5 ~ | \\mathbf { \\mu } \\mathbf { g } / \\mathbf { m l } )$ , harpin elicited HR in leaves of tobacco (Fig. 2, sectors 6 and "
-    },
-    {
-        "type": "text",
-        "content": "Because supernatants from E. amylovora Ea321(pCPP430) or E. coli DH5α (pCPP430) did not elicit HR, we postulated that harpin was not secreted but rather was present in or on the bacteria. Whole bacteria treated with protease failed to elicit HR, whereas bacteria incubated with protease together with $0 . 5 ~ \\mathrm { m M }$ phenylmethylsulfonyl fluoride (PMSF, a protease inhibitor) did (Table 1). Treatment of bacteria with increasing amounts of protease resulted in a decreased ability to elicit HR that correlated with the disappearance of harpin detectable in SDS-polyacrylamide gels (Table 1). After centrifugation of CFEP at $_ { 1 0 5 , 0 0 0 g }$ for 1 hour, most HR-eliciting activity was found in the supernatant. However, when the cell suspension was brought to $3 0 \\mathrm { \\ m M \\ M g C l } _ { 2 }$ ,before sonication, most activity was associated with the sedimented membrane fraction. Gel-permeation chromatography of unheated CFEP also indicated association of the elicitor with a high molecular weight $( > 1 0 ^ { 6 }$ daltons) fraction, probably membrane vesicles (14). Only the membrane fraction of E. amylovora Ea321(pCPP430) reacted with an antiserum raised in response to harpin (15), further supporting the cell-envelope location of harpin (Fig. 4). "
-    },
-    {
-        "type": "text",
-        "content": "HR-eliciting activity, harpin was not detected. However, when the protease inhibitor PMSF $( 0 . 5 \\mathrm { \\ m M } )$ was included, the bacteria retained HR-eliciting activity and possessed detectable harpin for more than 2 hours. More protease was required per cell to destroy harpin produced by E. coli $\\mathsf { D H S } \\alpha ( \\mathsf { p C P P } 4 3 0 )$ than by Ea321(pCPP430), suggesting that E. coli $\\mathsf { D H } 5 \\alpha ( \\mathsf { p C P P } 4 3 0 )$ produces more harpin or degrades it more slowly, or both. "
-    },
-    {
-        "type": "text",
-        "content": "The ability of bacterial strains to elicit the HR in intact tobacco leaves is related genetically to their ability to elicit a $\\mathbf { K } ^ { + } / \\mathbf { H } ^ { + }$ exchange reaction (XR) in tobacco cell suspension cultures (TCSCs) (16); both reactions require the hrp gene cluster (17). "
-    },
-    {
-        "type": "text",
-        "content": "We tested the ability of harpin to raise the pH of TCSC bathing solution, an indicator of the XR (Fig. 5). Cells of E. amylovora, grown in rich medium and added to TCSCs caused an increase in pH of the bathing solution after 2 to 3 hours. Addition of purified harpin caused an increase in pH within 1 hour. Erwinia amylovora mutant Ea321K49, which did not produce harpin in culture, and strains of E. coli containing mutated hrp gene clusters failed to elicit the XR. "
-    },
-    {
-        "type": "text",
-        "content": "Table 1. Protease sensitivity of the HR-eliciting activity of whole cells of E. amylovora Ea321(pCPP430). Cells were grown in LB medium, harvested'by centrifugation, and resuspended in 0.1 volume of $5 m M$ potassium phosphate $( \\mathsf { p H } \\thinspace 6 . 5 )$ containing tetracycline (40 $\\mu { \\sf g } / { \\sf m } 1 )$ . After incubation with protease (Sigma P5147), as indicated, at $\\mathfrak { s } 7 ^ { \\circ } \\mathfrak { C }$ for 5 min, $1 0 0 ~ \\mu !$ of each cell suspension was infiltrated into tobacco leaves. Leaf sector collapse was assayed at 24 hours. At the time of infiltration, portions of protease-treated cell mixtures were iysed, held'in boiling water for 10 min, centrifuged for 10 min at $1 2 . 0 0 0 g .$ and electrophoresed on a $10 \\%$ SDS-polyacrylamide gel to detect harpin. Electrophoresis was done for 2 hours at $1 5 m \\mathsf { A }$ followed by staining with Coomassie blue R-250. Cell-free supernatant, produced from the LB culture, was filter-sterilized and then concentrated with the Centriprep-10 (Amicon, Danvers, Massachusetts). "
-    },
-    {
-        "type": "text",
-        "content": "expressed fom pCPP1084 in the T7RNA (20). Insertions of Tn5tac1 in hrpN (21) (Fig. 1) abolished the ability of E. coli $\\mathsf { D H } 5 \\alpha ( \\mathsf { p C P P } 4 3 0 )$ to elicit HR on tobacco or produce harpin detectable on Western blots. Ea321T5, a derivative of E. amylo"
-    },
-    {
-        "type": "text",
-        "content": "at $\\pmb { 1 0 0 ^ { \\circ } } \\pmb { \\mathbb { C } }$ for 10 min; 8, CFEP $( 5 ~ \\mu 9 )$ from E. coli DH5a(pCPP430) treated at $1 0 0 ^ { \\circ } \\mathsf { C }$ for 10 min; 9, CFEP $( 5 ~ \\mu 9 )$ from E. amylovora Ea321K49 treated at $_ { 1 0 0 ^ { \\circ } \\mathbb { C } }$ for 10 min. Samples from the preparations in lanes 3, 4, 7, and 8 elicited HR in tobacco leaves. Samples were prepared as described (8) and brought to 125 mM tris-HCI $( \\mathsf { p H } 6 . 8 )$ $4 \\%$ SDS, $20 \\%$ glycerol, boiled for 3 min, then electrophoresed through a $10 \\%$ (w/v) polyacrylamide gel with $0 . 1 \\%$ SDS at $1 5 m A$ for 2 hours in a Mighty Small apparatus according to instructions (Hoefer Scientific Instruments, San Francisco, California). The gel was stained with $0 . 0 2 5 \\%$ Coomassie Blue R-250. Low-range prestained molecular weight standards (Bio-Rad 161-0305) were used and calibrated with an unstained protein marker (Bio-Rad 161-0304). Arrow indicates region corresponding to $4 4 \\ k \\mathsf$ "
-    },
-    {
-        "type": "text",
-        "content": "DNA sequence data from the $1 . 3 – \\mathbf { k } \\mathbf { b }$ Hind II fragment revealed that hrpN is 1155 base pairs long, and it encodes a 385–amino acid protein (Fig. 1). The 15 $\\mathrm { N H } _ { 2 }$ -terminal residues revealed by amino acid sequencing corresponded to those deduced from the DNA' sequence (Fig. 1). The deduced amino acid sequence of harpin (Fig. 1), which corresponded closely with the analyzed amino acid composition, reveals a glycine-rich protein with a high degree of hydrophilicity. It appears to have an open structure, which may explain its heat stability and sensitivity to proteases. A FASTA search (23) of GenBank for similar proteins revealed similarity only with other glycine-rich proteins, such as several plant cell wall proteins and keratins. "
-    },
-    {
         "type": "protein",
         "protein_caption": {
-          "protein name": "harpin",
-          "gene name from literature": "hrpN",
-          "source organism": "Erwinia amylovora",
-          "primary biological role": "elicitor of the plant defense reaction known as the hypersensitive response",
-          "subcellular localization (active site)": "cell-envelope-associated",
-          "inducible by": null,
-          "post-translational modifications": null,
-          "literature_name": "Harpin, Elicitor of the Hypersensitive Response Produced by the Plant Pathogen Erwinia amylovora",
-          "experimental evidence": "Harpin caused tobacco leaf lamina to collapse and caused an increase in the pH of bathing solutions of suspension-cultured tobacco cells.",
-          "gene names from uniprot database:": null,
-          "catalytic activity:": null,
-          "amino acids length:": 385,
-          "protein family:": null,
-          "protein sequence:": null
+            "database": "UniProt",
+            "id": "Q8CM25",
+            "entry_name": "PSBD_THEVB",
+            "gene_names": [
+                {
+                    "Name": "psbD1 {ECO:0000255|HAMAP-Rule:MF_01383}",
+                    "OrderedLocusNames": [
+                        "tlr0455"
+                    ]
+                },
+                {
+                    "Name": "psbD2 {ECO:0000255|HAMAP-Rule:MF_01383}",
+                    "OrderedLocusNames": [
+                        "tlr1630"
+                    ]
+                }
+            ],
+            "protein_name": "Photosystem II D2 protein {ECO:0000255|HAMAP-Rule:MF_01383}",
+            "organism": "Thermosynechococcus vestitus",
+            "sequence": "MTIAIGRAPAERGWFDILDDWLKRDRFVFVGWSGILLFPCAYLALGGWLTGTTFVTSWYTHGLASSYLEGCNFLTVAVSTPANSMGHSLLLLWGPEAQGDFTRWCQLGGLWTFIALHGAFGLIGFMLRQFEIARLVGVRPYNAIAFSAPIAVFVSVFLIYPLGQSSWFFAPSFGVAAIFRFLLFFQGFHNWTLNPFHMMGVAGVLGGALLCAIHGATVENTLFQDGEGASTFRAFNPTQAEETYSMVTANRFWSQIFGIAFSNKRWLHFFMLFVPVTGLWMSAIGVVGLALNLRSYDFISQEIRAAEDPEFETFYTKNLLLNEGIRAWMAPQDQPHENFVFPEEVLPRGNAL",
+            "function": [
+                "Photosystem II (PSII) is a light-driven water:plastoquinone oxidoreductase that uses light energy to abstract electrons from H(2)O, generating O(2) and a proton gradient subsequently used for ATP formation. It consists of a core antenna complex that captures photons, and an electron transfer chain that converts photonic excitation into a charge separation. The D1/D2 (PsbA/PsbD) reaction center heterodimer binds P680, the primary electron donor of PSII as well as several subsequent electron acceptors. D2 is needed for assembly of a stable PSII complex. {ECO:0000255|HAMAP-Rule:MF_01383, ECO:0000269|PubMed:20558739, ECO:0000269|PubMed:21367867, ECO:0000269|PubMed:25006873}."
+            ],
+            "url": "https://www.uniprot.org/uniprot/Q8CM25",
+            "_search_query": "MTIAIGRAPAERGWFDILDDWLKRDRFVFVGWSGILLFPCAYLALGGWLTGTTFVTSWYTHGLASSYLEGCNFLTVAVSTPANSMGHSLLLLWGPEAQGDFTRWCQLGGLWTFIALHGAFGLIGFMLRQFEIARLVGVRPYNAIAFSAPIAVFVSVFLIYPLGQSSWFFAPSFGVAAIFRFLLFFQGFHNWTLNPFHMMGVAGVLGGALLCAIHGATVENTLFQDGEGASTFRAFNPTQAEETYSMVTANRFWSQIFGIAFSNKRWLHFFMLFVPVTGLWMSAIGVVGLALNLRSYDFISQEIRAAEDPEFETFYTKNLLLNEGIRAWMAPQDQPHENFVFPEEVLPRGNAL"
         }
     }
 ]

@@ -256,6 +256,7 @@ class GraphGen:
             partition_config,
         )
         await self.partition_storage.upsert(batches)
+        await self.partition_storage.index_done_callback()
         return batches
 
     @op("extract", deps=["chunk"])

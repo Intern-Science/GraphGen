@@ -1,3 +1,4 @@
+import re
 from typing import Any
 
 from graphgen.bases import BaseGenerator
@@ -40,9 +41,10 @@ class ProteinQAGenerator(BaseGenerator):
         qa_pairs = {}
         qa_list = response.strip().split("\n\n")
         for qa in qa_list:
-            match = re.search(r"Question:\s*(.*?)\s*Answer:\s*(.*)", qa, re.DOTALL) or \
-                    re.search(r"问题：\s*(.*?)\s*答案：\s*(.*)", qa, re.DOTALL)
-            
+            match = re.search(
+                r"Question:\s*(.*?)\s*Answer:\s*(.*)", qa, re.DOTALL
+            ) or re.search(r"问题：\s*(.*?)\s*答案：\s*(.*)", qa, re.DOTALL)
+
             if match:
                 question = match.group(1).strip()
                 answer = match.group(2).strip()
@@ -78,11 +80,10 @@ class ProteinQAGenerator(BaseGenerator):
         nodes, _ = batch
         for node in nodes:
             node_data = node[1]
-            print(node_data)
-            if "images" in node_data and node_data["images"]:
-                img_path = node_data["images"]["img_path"]
+            if "protein" in node_data and node_data["protein"]:
+                protein_caption = node_data["protein"][0]
                 for qa in qa_pairs.values():
-                    qa["img_path"] = img_path
+                    qa["protein"] = protein_caption
         result.update(qa_pairs)
         return result
 
@@ -96,7 +97,7 @@ class ProteinQAGenerator(BaseGenerator):
                     "instruction": v["question"],
                     "input": "",
                     "output": v["answer"],
-                    "image": v.get("img_path", ""),
+                    "protein": v.get("protein", ""),
                 }
                 for item in results
                 for k, v in item.items()
@@ -108,7 +109,7 @@ class ProteinQAGenerator(BaseGenerator):
                         {
                             "from": "human",
                             "value": [
-                                {"text": v["question"], "image": v.get("img_path", "")}
+                                {"text": v["question"], "protein": v.get("protein", "")}
                             ],
                         },
                         {"from": "gpt", "value": v["answer"]},
@@ -124,7 +125,7 @@ class ProteinQAGenerator(BaseGenerator):
                         {
                             "role": "user",
                             "content": [
-                                {"text": v["question"], "image": v.get("img_path", "")}
+                                {"text": v["question"], "protein": v.get("protein", "")}
                             ],
                         },
                         {"role": "assistant", "content": v["answer"]},

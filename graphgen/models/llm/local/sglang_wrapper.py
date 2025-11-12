@@ -16,6 +16,7 @@ class SGLangWrapper(BaseLLMWrapper):
         temperature: float = 0.0,
         top_p: float = 1.0,
         topk: int = 5,
+        tp_size: int = 1,
         **kwargs: Any,
     ):
         super().__init__(temperature=temperature, top_p=top_p, **kwargs)
@@ -32,9 +33,10 @@ class SGLangWrapper(BaseLLMWrapper):
         self.temperature = temperature
         self.top_p = top_p
         self.topk = topk
+        self.tp_size = int(tp_size)
 
         # Initialise the offline engine
-        self.engine = sgl.Engine(model_path=self.model_path)
+        self.engine = sgl.Engine(model_path=self.model_path, tp_size=tp_size)
 
         # Keep helpers for streaming
         self.async_stream_and_merge = async_stream_and_merge
@@ -145,4 +147,6 @@ class SGLangWrapper(BaseLLMWrapper):
     def restart(self) -> None:
         """Restart the SGLang engine."""
         self.shutdown()
-        self.engine = self.engine.__class__(model_path=self.model_path)
+        self.engine = self.engine.__class__(
+            model_path=self.model_path, tp_size=self.tp_size
+        )

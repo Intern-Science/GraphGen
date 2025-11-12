@@ -36,7 +36,7 @@ class SGLangWrapper(BaseLLMWrapper):
         self.tp_size = int(tp_size)
 
         # Initialise the offline engine
-        self.engine = sgl.Engine(model_path=self.model_path, tp_size=tp_size)
+        self.engine = sgl.Engine(model_path=self.model_path, tp_size=self.tp_size)
 
         # Keep helpers for streaming
         self.async_stream_and_merge = async_stream_and_merge

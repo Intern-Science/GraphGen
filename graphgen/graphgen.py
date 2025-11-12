@@ -174,6 +174,7 @@ class GraphGen:
             return
 
         # Step 3: mark meta
+        await self.graph_storage.index_done_callback()
         await self.meta_storage.mark_done(self.chunks_storage)
         await self.meta_storage.index_done_callback()
 

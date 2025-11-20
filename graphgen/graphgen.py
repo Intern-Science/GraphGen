@@ -68,7 +68,8 @@ class GraphGen:
             self.working_dir, namespace="graph"
         )
         self.search_storage: JsonKVStorage = JsonKVStorage(
-            self.working_dir, namespace="search"
+            os.path.join(self.working_dir, "data", "graphgen", f"{self.unique_id}"),
+            namespace="search",
         )
         self.rephrase_storage: JsonKVStorage = JsonKVStorage(
             self.working_dir, namespace="rephrase"
@@ -206,15 +207,23 @@ class GraphGen:
         # Step 3: store the new entities and relations
         await self.graph_storage.index_done_callback()
 
-    @op("search", deps=["read"], op_type=OpType.STREAMING)
+    @op("search", deps=["read"], op_type=OpType.BATCH, batch_size=64)
     @async_to_sync_method
-    async def search(self, search_config: Dict, input_stream: Iterator):
+    async def search(self, search_config: Dict, inputs: List):
+        """
+        search new documents from full_docs_storage
+        input_stream: document IDs from full_docs_storage
+        return: None
+        """
         logger.info("[Search] %s ...", ", ".join(search_config["data_sources"]))
 
-        seeds = await self.meta_storage.get_new_data(self.full_docs_storage)
-        if len(seeds) == 0:
-            logger.warning("All documents are already been searched")
-            return
+        # Step 1: get documents
+        seeds = {}
+        for doc_id in inputs:
+            doc = await self.full_docs_storage.get_by_id(doc_id)
+            if doc:
+                seeds[doc_id] = doc
+
         search_results = await search_all(
             seed_data=seeds,
             search_config=search_config,
@@ -223,16 +232,15 @@ class GraphGen:
         _add_search_keys = await self.search_storage.filter_keys(
             list(search_results.keys())
         )
+
         search_results = {
             k: v for k, v in search_results.items() if k in _add_search_keys
         }
         if len(search_results) == 0:
-            logger.warning("All search results are already in the storage")
-            return
+            logger.warning("[Search] No new search results to add to storage")
+
         await self.search_storage.upsert(search_results)
         await self.search_storage.index_done_callback()
-        await self.meta_storage.mark_done(self.full_docs_storage)
-        await self.meta_storage.index_done_callback()
 
     @op("quiz_and_judge", deps=["build_kg"], op_type=OpType.BARRIER)
     @async_to_sync_method
@@ -276,6 +284,7 @@ class GraphGen:
     @op("partition", deps=["build_kg"], op_type=OpType.BARRIER)
     @async_to_sync_method
     async def partition(self, partition_config: Dict):
+        # TODO: partition 可以yield batches
         batches = await partition_kg(
             self.graph_storage,
             self.chunks_storage,
@@ -308,10 +317,10 @@ class GraphGen:
         await self.meta_storage.mark_done(self.chunks_storage)
         await self.meta_storage.index_done_callback()
 
-    @op("generate", deps=["partition"], op_type=OpType.BARRIER)
+    @op("generate", deps=["partition"], op_type=OpType.STREAMING)
     @async_to_sync_method
-    async def generate(self, generate_config: Dict, inputs: None):
-
+    async def generate(self, generate_config: Dict, input_stream: Iterator):
+        # TODO:
         batches = self.partition_storage.data
         if not batches:
             logger.warning("No partitions found for QA generation")

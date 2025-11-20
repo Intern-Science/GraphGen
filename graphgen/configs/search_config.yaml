@@ -1,7 +1,7 @@
 pipeline:
   - name: read
     params:
-      input_file:  resources/input_examples/search_demo.json # input file path, support json, jsonl, txt, pdf. See resources/input_examples for examples
+      input_file:  resources/input_examples/search_demo.jsonl # input file path, support json, jsonl, txt, pdf. See resources/input_examples for examples
 
   - name: search
     params:

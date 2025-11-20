@@ -1,6 +1,7 @@
 """
 orchestration engine for GraphGen
 """
+import inspect
 import queue
 import threading
 import traceback
@@ -218,7 +219,13 @@ class Engine:
         )
 
         if exceptions:
-            raise RuntimeError(f"Engine encountered exceptions: {exceptions}")
+            error_msgs = "\n".join(
+                [
+                    f"Operation {name} failed with error:\n{msg}"
+                    for name, msg in exceptions.items()
+                ]
+            )
+            raise RuntimeError(f"Engine encountered exceptions:\n{error_msgs}")
 
 
 def collect_ops(config: dict, graph_gen) -> List[OpNode]:
@@ -237,6 +244,9 @@ def collect_ops(config: dict, graph_gen) -> List[OpNode]:
         deps = stage.get("deps", op_node.deps)
         op_type = op_node.op_type
 
+        sig = inspect.signature(method)
+        accepts_input_stream = "input_stream" in sig.parameters
+
         if op_type == OpType.BARRIER:
             if "params" in stage:
 
@@ -250,14 +260,26 @@ def collect_ops(config: dict, graph_gen) -> List[OpNode]:
 
         elif op_type == OpType.STREAMING:
             if "params" in stage:
+                if accepts_input_stream:
 
-                def func(self, ctx, input_stream, m=method, sc=stage):
-                    return m(sc.get("params", {}), input_stream=input_stream)
+                    def func(self, ctx, input_stream, m=method, sc=stage):
+                        return m(sc.get("params", {}), input_stream=input_stream)
+
+                else:
+
+                    def func(self, ctx, input_stream, m=method, sc=stage):
+                        return m(sc.get("params", {}))
 
             else:
+                if accepts_input_stream:
 
-                def func(self, ctx, input_stream, m=method):
-                    return m(input_stream=input_stream)
+                    def func(self, ctx, input_stream, m=method):
+                        return m(input_stream=input_stream)
+
+                else:
+
+                    def func(self, ctx, input_stream, m=method):
+                        return m()
 
         else:
             raise ValueError(f"Unknown OpType {op_type} for operation {name}")

@@ -4,8 +4,14 @@ orchestration engine for GraphGen
 
 import threading
 import traceback
+from enum import Enum, auto
 from functools import wraps
-from typing import Any, Callable, List
+from typing import Any, Callable, List, Optional
+
+
+class AggMode(Enum):
+    MAP = auto()  # whenever upstream produces a result, run
+    ALL_REDUCE = auto()  # wait for all upstream results, then run
 
 
 class Context(dict):
@@ -22,9 +28,18 @@ class Context(dict):
 
 class OpNode:
     def __init__(
-        self, name: str, deps: List[str], func: Callable[["OpNode", Context], Any]
+        self,
+        name: str,
+        deps: List[str],
+        compute_func: Callable[["OpNode", Context], Any],
+        callback_func: Optional[Callable[["OpNode", Context, List[Any]], None]] = None,
+        agg_mode: AggMode = AggMode.ALL_REDUCE,
     ):
-        self.name, self.deps, self.func = name, deps, func
+        self.name = name
+        self.deps = deps
+        self.compute_func = compute_func
+        self.callback_func = callback_func or (lambda self, ctx, results: None)
+        self.agg_mode = agg_mode
 
 
 def op(name: str, deps=None):
@@ -95,6 +110,67 @@ class Engine:
                 "Some operations failed:\n"
                 + "\n".join(f"---- {op} ----\n{tb}" for op, tb in exc.items())
             )
+
+
+class Bucket:
+    """
+    Bucket for a single operation, collecting computation results and triggering downstream ops
+    """
+
+    def __init__(
+        self, name: str, size: int, mode: AggMode, callback: Callable[[List[Any]], None]
+    ):
+        self.name = name
+        self.size = size
+        self.mode = mode
+        self.callback = callback
+        self._lock = threading.Lock()
+        self._results: List[Any] = []
+        self._done = False
+
+    def put(self, result: Any):
+        with self._lock:
+            if self._done:
+                return
+            self._results.append(result)
+
+            if self.mode == AggMode.MAP or len(self._results) == self.size:
+                self._fire()
+
+    def _fire(self):
+        self._done = True
+        threading.Thread(target=self._callback_wrapper, daemon=True).start()
+
+    def _callback_wrapper(self):
+        try:
+            self.callback(self._results)
+        except Exception:  # pylint: disable=broad-except
+            traceback.print_exc()
+
+
+class BucketManager:
+    def __init__(self):
+        self._buckets: dict[str, Bucket] = {}
+        self._lock = threading.Lock()
+
+    def register(
+        self,
+        node_name: str,
+        bucket_size: int,
+        mode: AggMode,
+        callback: Callable[[List[Any]], None],
+    ):
+        with self._lock:
+            if node_name in self._buckets:
+                raise RuntimeError(f"Bucket {node_name} already registered")
+            self._buckets[node_name] = Bucket(
+                name=node_name, size=bucket_size, mode=mode, callback=callback
+            )
+            return self._buckets[node_name]
+
+    def get(self, node_name: str) -> Optional[Bucket]:
+        with self._lock:
+            return self._buckets.get(node_name)
 
 
 def collect_ops(config: dict, graph_gen) -> List[OpNode]:

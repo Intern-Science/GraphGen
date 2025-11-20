@@ -1,17 +1,25 @@
 """
 orchestration engine for GraphGen
 """
-
+import queue
 import threading
 import traceback
 from enum import Enum, auto
 from functools import wraps
-from typing import Any, Callable, List, Optional
+from typing import Callable, Dict, List
 
 
-class AggMode(Enum):
-    MAP = auto()  # whenever upstream produces a result, run
-    ALL_REDUCE = auto()  # wait for all upstream results, then run
+class OpType(Enum):
+    STREAMING = auto()  # once data from upstream arrives, process it immediately
+    BARRIER = auto()  # wait for all upstream data to arrive before processing
+
+    # TODO: implement batch processing
+    # BATCH = auto()  # process data in batches
+
+
+# signals the end of a data stream
+class EndOfStream:
+    pass
 
 
 class Context(dict):
@@ -31,18 +39,16 @@ class OpNode:
         self,
         name: str,
         deps: List[str],
-        compute_func: Callable[["OpNode", Context], Any],
-        callback_func: Optional[Callable[["OpNode", Context, List[Any]], None]] = None,
-        agg_mode: AggMode = AggMode.ALL_REDUCE,
+        func: Callable,
+        op_type: OpType = OpType.BARRIER,  # use barrier by default
     ):
         self.name = name
         self.deps = deps
-        self.compute_func = compute_func
-        self.callback_func = callback_func or (lambda self, ctx, results: None)
-        self.agg_mode = agg_mode
+        self.func = func
+        self.op_type = op_type
 
 
-def op(name: str, deps=None, agg_mode: AggMode = AggMode.ALL_REDUCE):
+def op(name: str, deps=None, op_type: OpType = OpType.BARRIER):
     deps = deps or []
 
     def decorator(func):
@@ -51,11 +57,10 @@ def op(name: str, deps=None, agg_mode: AggMode = AggMode.ALL_REDUCE):
             return func(*args, **kwargs)
 
         _wrapper.op_node = OpNode(
-            name=name,
-            deps=deps,
-            compute_func=lambda self, ctx: func(self),
-            callback_func=lambda self, ctx, results: None,
-            agg_mode=agg_mode,
+            name,
+            deps,
+            func,
+            op_type=op_type,
         )
         return _wrapper
 
@@ -63,145 +68,157 @@ def op(name: str, deps=None, agg_mode: AggMode = AggMode.ALL_REDUCE):
 
 
 class Engine:
-    def __init__(self, max_workers: int = 4):
-        self.max_workers = max_workers
-        self.bucket_mgr = BucketManager()
+    def __init__(self, queue_size: int = 100):
+        self.queue_size = queue_size
+
+    @staticmethod
+    def _topo_sort(name2op: Dict[str, OpNode]) -> List[str]:
+        adj = {n: [] for n in name2op}
+        in_degree = {n: 0 for n in name2op}
+
+        for name, operation in name2op.items():
+            for dep_name in operation.deps:
+                if dep_name not in name2op:
+                    raise ValueError(f"Dependency {dep_name} of {name} not found")
+                adj[dep_name].append(name)
+                in_degree[name] += 1
+
+        # Kahn's algorithm for topological sorting
+        queue_nodes = [n for n in name2op if in_degree[n] == 0]
+        topo_order = []
+
+        while queue_nodes:
+            u = queue_nodes.pop(0)
+            topo_order.append(u)
+
+            for v in adj[u]:
+                in_degree[v] -= 1
+                if in_degree[v] == 0:
+                    queue_nodes.append(v)
+
+        # cycle detection
+        if len(topo_order) != len(name2op):
+            cycle_nodes = set(name2op.keys()) - set(topo_order)
+            raise ValueError(f"Cyclic dependency detected among: {cycle_nodes}")
+        return topo_order
+
+    def _build_channels(self, name2op):
+        """Return channels / consumers_of / producer_counts"""
+        channels, consumers_of, producer_counts = {}, {}, {n: 0 for n in name2op}
+        for name, operator in name2op.items():
+            consumers_of[name] = []
+            for dep in operator.deps:
+                if dep not in name2op:
+                    raise ValueError(f"Dependency {dep} of {name} not found")
+                channels[(dep, name)] = queue.Queue(maxsize=self.queue_size)
+                consumers_of[dep].append(name)
+                producer_counts[name] += 1
+        return channels, consumers_of, producer_counts
+
+    def _run_workers(self, ordered_ops, channels, consumers_of, producer_counts, ctx):
+        """Run worker threads for each operation node."""
+        exceptions, threads = {}, []
+        for node in ordered_ops:
+            t = threading.Thread(
+                target=self._worker_loop,
+                args=(node, channels, consumers_of, producer_counts, ctx, exceptions),
+                daemon=True,
+            )
+            t.start()
+            threads.append(t)
+        for t in threads:
+            t.join()
+        return exceptions
+
+    def _worker_loop(
+        self, node, channels, consumers_of, producer_counts, ctx, exceptions
+    ):
+        op_name = node.name
+
+        def input_generator():
+            # if no dependencies, yield None once
+            if not node.deps:
+                yield None
+                return
+
+            active_producers = producer_counts[op_name]
+            # collect all queues
+            input_queues = [channels[(dep_name, op_name)] for dep_name in node.deps]
+
+            # loop until all producers are done
+            while active_producers > 0:
+                got_data = False
+                for q in input_queues:
+                    try:
+                        item = q.get(timeout=0.1)
+                        if isinstance(item, EndOfStream):
+                            active_producers -= 1
+                        else:
+                            yield item
+                        got_data = True
+                    except queue.Empty:
+                        continue
+
+                if not got_data and active_producers > 0:
+                    # barrier wait on the first active queue
+                    item = input_queues[0].get()
+                    if isinstance(item, EndOfStream):
+                        active_producers -= 1
+                    else:
+                        yield item
+
+        in_stream = input_generator()
+
+        try:
+            # execute the operation
+            result_iter = []
+            if node.op_type == OpType.BARRIER:
+                # consume all input
+                buffered_inputs = list(in_stream)
+                res = node.func(self, ctx, inputs=buffered_inputs)
+                if res is not None:
+                    result_iter = res if isinstance(res, (list, tuple)) else [res]
+
+            elif node.op_type == OpType.STREAMING:
+                # process input one by one
+                res = node.func(self, ctx, input_stream=in_stream)
+                if res is not None:
+                    result_iter = res
+            else:
+                raise ValueError(f"Unknown OpType {node.op_type} for {op_name}")
+
+            # output dispatch, send results to downstream consumers
+            if result_iter:
+                for item in result_iter:
+                    for consumer_name in consumers_of[op_name]:
+                        channels[(op_name, consumer_name)].put(item)
+
+        except Exception:  # pylint: disable=broad-except
+            traceback.print_exc()
+            exceptions[op_name] = traceback.format_exc()
+
+        finally:
+            # signal end of stream to downstream consumers
+            for consumer_name in consumers_of[op_name]:
+                channels[(op_name, consumer_name)].put(EndOfStream())
 
     def run(self, ops: List[OpNode], ctx: Context):
         name2op = {op.name: op for op in ops}
-        topo_names = [op.name for op in self._topo_sort(ops)]
 
-        sem = threading.Semaphore(self.max_workers)
-        done = {n: threading.Event() for n in name2op}
-        exc = {}
+        # Step 1: topo sort and validate
+        sorted_op_names = self._topo_sort(name2op)
 
-        for node in ops:
-            bucket_size = ctx.get(f"_bucket_size_{node.name}", 1)
-            self.bucket_mgr.register(
-                node.name,
-                bucket_size,
-                node.agg_mode,
-                lambda results, n=node: self._callback_wrapper(n, ctx, results),
-            )
+        # Step 2: build channels and tracking structures
+        channels, consumers_of, producer_counts = self._build_channels(name2op)
 
-        def _exec(n: str):
-            with sem:
-                for d in name2op[n].deps:
-                    done[d].wait()
-                if any(d in exc for d in name2op[n].deps):
-                    exc[n] = "Skipped due to failed dependencies"
-                    done[n].set()
-                    return
+        # Step3: start worker threads using topo order
+        ordered_ops = [name2op[name] for name in sorted_op_names]
+        exceptions = self._run_workers(
+            ordered_ops, channels, consumers_of, producer_counts, ctx
+        )
 
-                try:
-                    name2op[n].compute_func(name2op[n], ctx)
-                except Exception:  # pylint: disable=broad-except
-                    exc[n] = traceback.format_exc()
-                finally:
-                    done[n].set()
-
-        ts = [
-            threading.Thread(target=_exec, args=(name,), daemon=True)
-            for name in topo_names
-        ]
-        for t in ts:
-            t.start()
-        for t in ts:
-            t.join()
-        if exc:
-            raise RuntimeError(
-                "Some operations failed:\n"
-                + "\n".join(f"---- {op} ----\n{tb}" for op, tb in exc.items())
-            )
-
-    @staticmethod
-    def _callback_wrapper(node: OpNode, ctx: Context, results: List[Any]):
-        try:
-            node.callback_func(node, ctx, results)
-        except Exception:  # pylint: disable=broad-except
-            traceback.print_exc()
-
-    @staticmethod
-    def _topo_sort(ops: List[OpNode]) -> List[OpNode]:
-        name2op = {operation.name: operation for operation in ops}
-        graph = {n: set(name2op[n].deps) for n in name2op}
-        topo = []
-        q = [n for n, d in graph.items() if not d]
-        while q:
-            cur = q.pop(0)
-            topo.append(name2op[cur])
-            for child in [c for c, d in graph.items() if cur in d]:
-                graph[child].remove(cur)
-                if not graph[child]:
-                    q.append(child)
-
-        if len(topo) != len(ops):
-            raise ValueError(
-                "Cyclic dependencies detected among operations."
-                "Please check your configuration."
-            )
-        return topo
-
-
-class Bucket:
-    """
-    Bucket for a single operation, collecting computation results and triggering downstream ops
-    """
-
-    def __init__(
-        self, name: str, size: int, mode: AggMode, callback: Callable[[List[Any]], None]
-    ):
-        self.name = name
-        self.size = size
-        self.mode = mode
-        self.callback = callback
-        self._lock = threading.Lock()
-        self._results: List[Any] = []
-        self._done = False
-
-    def put(self, result: Any):
-        with self._lock:
-            if self._done:
-                return
-            self._results.append(result)
-
-            if self.mode == AggMode.MAP or len(self._results) == self.size:
-                self._fire()
-
-    def _fire(self):
-        self._done = True
-        threading.Thread(target=self._callback_wrapper, daemon=True).start()
-
-    def _callback_wrapper(self):
-        try:
-            self.callback(self._results)
-        except Exception:  # pylint: disable=broad-except
-            traceback.print_exc()
-
-
-class BucketManager:
-    def __init__(self):
-        self._buckets: dict[str, Bucket] = {}
-        self._lock = threading.Lock()
-
-    def register(
-        self,
-        node_name: str,
-        bucket_size: int,
-        mode: AggMode,
-        callback: Callable[[List[Any]], None],
-    ):
-        with self._lock:
-            if node_name in self._buckets:
-                raise RuntimeError(f"Bucket {node_name} already registered")
-            self._buckets[node_name] = Bucket(
-                name=node_name, size=bucket_size, mode=mode, callback=callback
-            )
-            return self._buckets[node_name]
-
-    def get(self, node_name: str) -> Optional[Bucket]:
-        with self._lock:
-            return self._buckets.get(node_name)
+        if exceptions:
+            raise RuntimeError(f"Engine encountered exceptions: {exceptions}")
 
 
 def collect_ops(config: dict, graph_gen) -> List[OpNode]:
@@ -217,13 +234,39 @@ def collect_ops(config: dict, graph_gen) -> List[OpNode]:
         op_node = method.op_node
 
         # if there are runtime dependencies, override them
-        runtime_deps = stage.get("deps", op_node.deps)
-        op_node.deps = runtime_deps
+        deps = stage.get("deps", op_node.deps)
+        op_type = op_node.op_type
 
-        if "params" in stage:
-            params = stage["params"]
-            op_node.compute_func = lambda self, ctx, m=method, p=params: m(p)
+        if op_type == OpType.BARRIER:
+            if "params" in stage:
+
+                def func(self, ctx, inputs, m=method, sc=stage):
+                    return m(sc.get("params", {}), inputs=inputs)
+
+            else:
+
+                def func(self, ctx, inputs, m=method):
+                    return m(inputs=inputs)
+
+        elif op_type == OpType.STREAMING:
+            if "params" in stage:
+
+                def func(self, ctx, input_stream, m=method, sc=stage):
+                    return m(sc.get("params", {}), input_stream=input_stream)
+
+            else:
+
+                def func(self, ctx, input_stream, m=method):
+                    return m(input_stream=input_stream)
+
         else:
-            op_node.compute_func = lambda self, ctx, m=method: m()
-        ops.append(op_node)
+            raise ValueError(f"Unknown OpType {op_type} for operation {name}")
+
+        new_node = OpNode(
+            name=name,
+            deps=deps,
+            func=func,
+            op_type=op_type,
+        )
+        ops.append(new_node)
     return ops

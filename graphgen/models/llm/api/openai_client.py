@@ -32,7 +32,7 @@ class OpenAIClient(BaseLLMWrapper):
     def __init__(
         self,
         *,
-        model_name: str = "gpt-4o-mini",
+        model: str = "gpt-4o-mini",
         api_key: Optional[str] = None,
         base_url: Optional[str] = None,
         json_mode: bool = False,
@@ -44,7 +44,7 @@ class OpenAIClient(BaseLLMWrapper):
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
-        self.model_name = model_name
+        self.model = model
         self.api_key = api_key
         self.base_url = base_url
         self.json_mode = json_mode
@@ -109,7 +109,7 @@ class OpenAIClient(BaseLLMWrapper):
         kwargs["max_tokens"] = 1
 
         completion = await self.client.chat.completions.create(  # pylint: disable=E1125
-            model=self.model_name, **kwargs
+            model=self.model, **kwargs
         )
 
         tokens = get_top_response_tokens(completion)
@@ -141,7 +141,7 @@ class OpenAIClient(BaseLLMWrapper):
             await self.tpm.wait(estimated_tokens, silent=True)
 
         completion = await self.client.chat.completions.create(  # pylint: disable=E1125
-            model=self.model_name, **kwargs
+            model=self.model, **kwargs
         )
         if hasattr(completion, "usage"):
             self.token_usage.append(

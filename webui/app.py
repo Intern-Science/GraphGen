@@ -42,7 +42,7 @@ def init_graph_gen(config: dict, env: dict) -> GraphGen:
 
     tokenizer_instance = Tokenizer(config.get("tokenizer", "cl100k_base"))
     synthesizer_llm_client = OpenAIClient(
-        model_name=env.get("SYNTHESIZER_MODEL", ""),
+        model=env.get("SYNTHESIZER_MODEL", ""),
         base_url=env.get("SYNTHESIZER_BASE_URL", ""),
         api_key=env.get("SYNTHESIZER_API_KEY", ""),
         request_limit=True,
@@ -51,7 +51,7 @@ def init_graph_gen(config: dict, env: dict) -> GraphGen:
         tokenizer=tokenizer_instance,
     )
     trainee_llm_client = OpenAIClient(
-        model_name=env.get("TRAINEE_MODEL", ""),
+        model=env.get("TRAINEE_MODEL", ""),
         base_url=env.get("TRAINEE_BASE_URL", ""),
         api_key=env.get("TRAINEE_API_KEY", ""),
         request_limit=True,

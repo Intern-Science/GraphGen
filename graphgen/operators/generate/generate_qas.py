@@ -1,5 +1,7 @@
 from typing import Any
 
+import gradio as gr
+
 from graphgen.bases import BaseLLMWrapper
 from graphgen.models import (
     AggregatedGenerator,
@@ -19,7 +21,7 @@ async def generate_qas(
         ]
     ],
     generation_config: dict,
-    progress_bar=None,
+    progress_bar: gr.Progress = None,
 ) -> list[dict[str, Any]]:
     """
     Generate question-answer pairs based on nodes and edges.

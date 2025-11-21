@@ -110,11 +110,11 @@ Output:
 
 
 DESCRIPTION_REPHRASING_PROMPT= {
-    "English": {
+    "en": {
         "ANTI_TEMPLATE": ANTI_TEMPLATE_EN,
         "TEMPLATE": TEMPLATE_EN
     },
-    "Chinese": {
+    "zh": {
         "ANTI_TEMPLATE": ANTI_TEMPLATE_ZH,
         "TEMPLATE": TEMPLATE_ZH
     }

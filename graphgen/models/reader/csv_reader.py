@@ -28,9 +28,6 @@ class CSVReader(BaseReader):
         """
 
         ds = ray.data.read_csv(input_path, override_num_blocks=override_num_blocks)
-
         ds = ds.map_batches(self._validate_batch, batch_format="pandas")
-
         ds = ds.filter(self._should_keep_item)
-
         return ds

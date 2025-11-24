@@ -17,19 +17,19 @@ class ParquetReader(BaseReader):
     def read(
         self,
         input_path: Union[str, List[str]],
-        override_num_blocks: int = None,
+        parallelism: int = None,
     ) -> Dataset:
         """
         Read Parquet files using Ray Data.
 
         :param input_path: Path to Parquet file or list of Parquet files.
-        :param override_num_blocks: Number of blocks for Ray Dataset reading.
+        :param parallelism: Number of blocks for Ray Dataset reading.
         :return: Ray Dataset containing validated documents.
         """
         if not ray.is_initialized():
             ray.init()
 
-        ds = ray.data.read_parquet(input_path, override_num_blocks=override_num_blocks)
+        ds = ray.data.read_parquet(input_path, override_num_blocks=parallelism)
         ds = ds.map_batches(self._validate_batch, batch_format="pandas")
         ds = ds.filter(self._should_keep_item)
         return ds

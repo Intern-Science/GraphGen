@@ -26,7 +26,7 @@ class JSONReader(BaseReader):
         :return: Ray Dataset containing validated and filtered data.
         """
 
-        ds = ray.data.read_json(input_path, parallelism=parallelism)
+        ds = ray.data.read_json(input_path, override_num_blocks=parallelism)
         ds = ds.map_batches(self._validate_batch, batch_format="pandas")
         ds = ds.filter(self._should_keep_item)
         return ds

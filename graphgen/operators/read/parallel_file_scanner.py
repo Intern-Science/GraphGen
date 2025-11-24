@@ -194,8 +194,8 @@ class ParallelFileScanner:
                 },
             )
             logger.info("[READ] Cached scan result for path: %s", path)
-        except OSError:
-            pass
+        except OSError as e:
+            logger.error("[READ] Failed to cache scan result for path %s: %s", path, e)
 
     def _is_allowed_file(self, path: Path) -> bool:
         """Check if the file has an allowed suffix"""

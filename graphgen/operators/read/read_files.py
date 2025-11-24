@@ -178,7 +178,8 @@ class UnifiedFileDatasource(Datasource):
                         # Convert list of dicts to PyArrow Table (Block)
                         if all_records:
                             # Create PyArrow Table from records
-                            table = pa.Table.from_pylist(all_records)
+                            # pylint: disable=no-value-for-parameter
+                            table = pa.Table.from_pylist(mapping=all_records)
                             yield table
 
                     return _read_fn

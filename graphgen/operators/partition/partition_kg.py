@@ -34,8 +34,8 @@ async def partition_kg(
         # TODO： before ECE partitioning, we need to:
         # 1. 'quiz and judge' to get the comprehension loss if unit_sampling is not random
         # 2. pre-tokenize nodes and edges to get the token length
-        edges = await kg_instance.get_all_edges()
-        nodes = await kg_instance.get_all_nodes()
+        edges = kg_instance.get_all_edges()
+        nodes = kg_instance.get_all_nodes()
         await pre_tokenize(kg_instance, tokenizer, edges, nodes)
         partitioner = ECEPartitioner()
     elif method == "leiden":
@@ -105,7 +105,7 @@ async def _attach_by_type(
         image_chunks = [
             data
             for sid in source_ids
-            if "image" in sid.lower() and (data := await chunk_storage.get_by_id(sid))
+            if "image" in sid.lower() and (data := chunk_storage.get_by_id(sid))
         ]
         if image_chunks:
             # The generator expects a dictionary with an 'img_path' key, not a list of captions.

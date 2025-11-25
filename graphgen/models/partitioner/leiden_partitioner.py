@@ -34,8 +34,8 @@ class LeidenPartitioner(BasePartitioner):
         :param kwargs: other parameters for the leiden algorithm
         :return:
         """
-        nodes = await g.get_all_nodes()  # List[Tuple[str, dict]]
-        edges = await g.get_all_edges()  # List[Tuple[str, str, dict]]
+        nodes = g.get_all_nodes()  # List[Tuple[str, dict]]
+        edges = g.get_all_edges()  # List[Tuple[str, str, dict]]
 
         node2cid: Dict[str, int] = await self._run_leiden(
             nodes, edges, use_lcc, random_seed

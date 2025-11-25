@@ -45,16 +45,14 @@ async def judge_statement(  # pylint: disable=too-many-statements
         description = edge_data["description"]
 
         try:
-            descriptions = await rephrase_storage.get_by_id(description)
+            descriptions = rephrase_storage.get_by_id(description)
             assert descriptions is not None
 
             judgements = []
             gts = [gt for _, gt in descriptions]
             for description, gt in descriptions:
                 judgement = await trainee_llm_client.generate_topk_per_token(
-                    STATEMENT_JUDGEMENT_PROMPT["TEMPLATE"].format(
-                        statement=description
-                    )
+                    STATEMENT_JUDGEMENT_PROMPT["TEMPLATE"].format(statement=description)
                 )
                 judgements.append(judgement[0].top_candidates)
 
@@ -76,10 +74,10 @@ async def judge_statement(  # pylint: disable=too-many-statements
             logger.info("Use default loss 0.1")
             edge_data["loss"] = -math.log(0.1)
 
-        await graph_storage.update_edge(source_id, target_id, edge_data)
+        graph_storage.update_edge(source_id, target_id, edge_data)
         return source_id, target_id, edge_data
 
-    edges = await graph_storage.get_all_edges()
+    edges = graph_storage.get_all_edges()
 
     await run_concurrent(
         _judge_single_relation,
@@ -104,24 +102,20 @@ async def judge_statement(  # pylint: disable=too-many-statements
         description = node_data["description"]
 
         try:
-            descriptions = await rephrase_storage.get_by_id(description)
+            descriptions = rephrase_storage.get_by_id(description)
             assert descriptions is not None
 
             judgements = []
             gts = [gt for _, gt in descriptions]
             for description, gt in descriptions:
                 judgement = await trainee_llm_client.generate_topk_per_token(
-                    STATEMENT_JUDGEMENT_PROMPT["TEMPLATE"].format(
-                        statement=description
-                    )
+                    STATEMENT_JUDGEMENT_PROMPT["TEMPLATE"].format(statement=description)
                 )
                 judgements.append(judgement[0].top_candidates)
 
             loss = yes_no_loss_entropy(judgements, gts)
 
-            logger.debug(
-                "Node %s description: %s loss: %s", node_id, description, loss
-            )
+            logger.debug("Node %s description: %s loss: %s", node_id, description, loss)
 
             node_data["loss"] = loss
         except Exception as e:  # pylint: disable=broad-except
@@ -129,10 +123,10 @@ async def judge_statement(  # pylint: disable=too-many-statements
             logger.error("Use default loss 0.1")
             node_data["loss"] = -math.log(0.1)
 
-        await graph_storage.update_node(node_id, node_data)
+        graph_storage.update_node(node_id, node_data)
         return node_id, node_data
 
-    nodes = await graph_storage.get_all_nodes()
+    nodes = graph_storage.get_all_nodes()
 
     await run_concurrent(
         _judge_single_entity,

@@ -29,9 +29,9 @@ async def pre_tokenize(
                     )
                 )
             if is_node:
-                await graph_storage.update_node(obj[0], obj[1])
+                graph_storage.update_node(obj[0], obj[1])
             else:
-                await graph_storage.update_edge(obj[0], obj[1], obj[2])
+                graph_storage.update_edge(obj[0], obj[1], obj[2])
             return obj
 
     new_edges, new_nodes = await asyncio.gather(
@@ -51,5 +51,5 @@ async def pre_tokenize(
         ),
     )
 
-    await graph_storage.index_done_callback()
+    graph_storage.index_done_callback()
     return new_edges, new_nodes

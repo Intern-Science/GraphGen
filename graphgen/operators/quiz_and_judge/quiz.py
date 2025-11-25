@@ -31,7 +31,7 @@ async def quiz(
         description, template_type, gt = item
         try:
             # if rephrase_storage exists already, directly get it
-            descriptions = await rephrase_storage.get_by_id(description)
+            descriptions = rephrase_storage.get_by_id(description)
             if descriptions:
                 return None
 
@@ -46,8 +46,8 @@ async def quiz(
             logger.error("Error when quizzing description %s: %s", description, e)
             return None
 
-    edges = await graph_storage.get_all_edges()
-    nodes = await graph_storage.get_all_nodes()
+    edges = graph_storage.get_all_edges()
+    nodes = graph_storage.get_all_nodes()
 
     results = defaultdict(list)
     items = []
@@ -88,6 +88,6 @@ async def quiz(
 
     for key, value in results.items():
         results[key] = list(set(value))
-        await rephrase_storage.upsert({key: results[key]})
+        rephrase_storage.upsert({key: results[key]})
 
     return rephrase_storage

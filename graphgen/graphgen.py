@@ -104,15 +104,15 @@ class GraphGen:
         # TODO: configurable whether to use coreference resolution
 
         new_docs = {compute_mm_hash(doc, prefix="doc-"): doc for doc in data}
-        _add_doc_keys = await self.full_docs_storage.filter_keys(list(new_docs.keys()))
+        _add_doc_keys = self.full_docs_storage.filter_keys(list(new_docs.keys()))
         new_docs = {k: v for k, v in new_docs.items() if k in _add_doc_keys}
 
         if len(new_docs) == 0:
             logger.warning("All documents are already in the storage")
             return
 
-        await self.full_docs_storage.upsert(new_docs)
-        await self.full_docs_storage.index_done_callback()
+        self.full_docs_storage.upsert(new_docs)
+        self.full_docs_storage.index_done_callback()
 
     @op("chunk", deps=["read"])
     @async_to_sync_method
@@ -121,7 +121,7 @@ class GraphGen:
         chunk documents into smaller pieces from full_docs_storage if not already present
         """
 
-        new_docs = await self.meta_storage.get_new_data(self.full_docs_storage)
+        new_docs = self.meta_storage.get_new_data(self.full_docs_storage)
         if len(new_docs) == 0:
             logger.warning("All documents are already in the storage")
             return
@@ -133,9 +133,7 @@ class GraphGen:
             **chunk_config,
         )
 
-        _add_chunk_keys = await self.chunks_storage.filter_keys(
-            list(inserting_chunks.keys())
-        )
+        _add_chunk_keys = self.chunks_storage.filter_keys(list(inserting_chunks.keys()))
         inserting_chunks = {
             k: v for k, v in inserting_chunks.items() if k in _add_chunk_keys
         }
@@ -144,10 +142,10 @@ class GraphGen:
             logger.warning("All chunks are already in the storage")
             return
 
-        await self.chunks_storage.upsert(inserting_chunks)
-        await self.chunks_storage.index_done_callback()
-        await self.meta_storage.mark_done(self.full_docs_storage)
-        await self.meta_storage.index_done_callback()
+        self.chunks_storage.upsert(inserting_chunks)
+        self.chunks_storage.index_done_callback()
+        self.meta_storage.mark_done(self.full_docs_storage)
+        self.meta_storage.index_done_callback()
 
     @op("build_kg", deps=["chunk"])
     @async_to_sync_method
@@ -156,7 +154,7 @@ class GraphGen:
         build knowledge graph from text chunks
         """
         # Step 1: get new chunks according to meta and chunks storage
-        inserting_chunks = await self.meta_storage.get_new_data(self.chunks_storage)
+        inserting_chunks = self.meta_storage.get_new_data(self.chunks_storage)
         if len(inserting_chunks) == 0:
             logger.warning("All chunks are already in the storage")
             return
@@ -174,9 +172,9 @@ class GraphGen:
             return
 
         # Step 3: mark meta
-        await self.graph_storage.index_done_callback()
-        await self.meta_storage.mark_done(self.chunks_storage)
-        await self.meta_storage.index_done_callback()
+        self.graph_storage.index_done_callback()
+        self.meta_storage.mark_done(self.chunks_storage)
+        self.meta_storage.index_done_callback()
 
         return _add_entities_and_relations
 
@@ -185,7 +183,7 @@ class GraphGen:
     async def search(self, search_config: Dict):
         logger.info("[Search] %s ...", ", ".join(search_config["data_sources"]))
 
-        seeds = await self.meta_storage.get_new_data(self.full_docs_storage)
+        seeds = self.meta_storage.get_new_data(self.full_docs_storage)
         if len(seeds) == 0:
             logger.warning("All documents are already been searched")
             return
@@ -194,19 +192,17 @@ class GraphGen:
             search_config=search_config,
         )
 
-        _add_search_keys = await self.search_storage.filter_keys(
-            list(search_results.keys())
-        )
+        _add_search_keys = self.search_storage.filter_keys(list(search_results.keys()))
         search_results = {
             k: v for k, v in search_results.items() if k in _add_search_keys
         }
         if len(search_results) == 0:
             logger.warning("All search results are already in the storage")
             return
-        await self.search_storage.upsert(search_results)
-        await self.search_storage.index_done_callback()
-        await self.meta_storage.mark_done(self.full_docs_storage)
-        await self.meta_storage.index_done_callback()
+        self.search_storage.upsert(search_results)
+        self.search_storage.index_done_callback()
+        self.meta_storage.mark_done(self.full_docs_storage)
+        self.meta_storage.index_done_callback()
 
     @op("quiz_and_judge", deps=["build_kg"])
     @async_to_sync_method
@@ -240,8 +236,8 @@ class GraphGen:
             progress_bar=self.progress_bar,
         )
 
-        await self.rephrase_storage.index_done_callback()
-        await _update_relations.index_done_callback()
+        self.rephrase_storage.index_done_callback()
+        _update_relations.index_done_callback()
 
         logger.info("Shutting down trainee LLM client.")
         self.trainee_llm_client.shutdown()
@@ -258,7 +254,7 @@ class GraphGen:
             self.tokenizer_instance,
             partition_config,
         )
-        await self.partition_storage.upsert(batches)
+        self.partition_storage.upsert(batches)
         return batches
 
     @op("extract", deps=["chunk"])
@@ -276,10 +272,10 @@ class GraphGen:
             logger.warning("No information extracted")
             return
 
-        await self.extract_storage.upsert(results)
-        await self.extract_storage.index_done_callback()
-        await self.meta_storage.mark_done(self.chunks_storage)
-        await self.meta_storage.index_done_callback()
+        self.extract_storage.upsert(results)
+        self.extract_storage.index_done_callback()
+        self.meta_storage.mark_done(self.chunks_storage)
+        self.meta_storage.index_done_callback()
 
     @op("generate", deps=["partition"])
     @async_to_sync_method
@@ -303,17 +299,17 @@ class GraphGen:
             return
 
         # Step 3: store the generated QA pairs
-        await self.qa_storage.upsert(results)
-        await self.qa_storage.index_done_callback()
+        self.qa_storage.upsert(results)
+        self.qa_storage.index_done_callback()
 
     @async_to_sync_method
     async def clear(self):
-        await self.full_docs_storage.drop()
-        await self.chunks_storage.drop()
-        await self.search_storage.drop()
-        await self.graph_storage.clear()
-        await self.rephrase_storage.drop()
-        await self.qa_storage.drop()
+        self.full_docs_storage.drop()
+        self.chunks_storage.drop()
+        self.search_storage.drop()
+        self.graph_storage.clear()
+        self.rephrase_storage.drop()
+        self.qa_storage.drop()
 
         logger.info("All caches are cleared")
 

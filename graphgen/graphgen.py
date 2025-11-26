@@ -67,14 +67,15 @@ class GraphGen:
         self.graph_storage: NetworkXStorage = NetworkXStorage(
             self.working_dir, namespace="graph"
         )
-        self.search_storage: JsonKVStorage = JsonKVStorage(
-            self.working_dir, namespace="search"
-        )
         self.rephrase_storage: JsonKVStorage = JsonKVStorage(
             self.working_dir, namespace="rephrase"
         )
         self.partition_storage: JsonListStorage = JsonListStorage(
             self.working_dir, namespace="partition"
+        )
+        self.search_storage: JsonKVStorage = JsonKVStorage(
+            os.path.join(self.working_dir, "data", "graphgen", f"{self.unique_id}"),
+            namespace="search",
         )
         self.qa_storage: JsonListStorage = JsonListStorage(
             os.path.join(self.working_dir, "data", "graphgen", f"{self.unique_id}"),
@@ -94,23 +95,24 @@ class GraphGen:
         """
         read files from input sources
         """
-        data = read_files(**read_config, cache_dir=self.working_dir)
-        if len(data) == 0:
-            logger.warning("No data to process")
-            return
+        doc_stream = read_files(**read_config, cache_dir=self.working_dir)
 
-        assert isinstance(data, list) and isinstance(data[0], dict)
+        batch = {}
+        for doc in doc_stream:
+            doc_id = compute_mm_hash(doc, prefix="doc-")
+
+            batch[doc_id] = doc
+        if batch:
+            self.full_docs_storage.upsert(batch)
+            self.full_docs_storage.index_done_callback()
 
         # TODO: configurable whether to use coreference resolution
 
-        new_docs = {compute_mm_hash(doc, prefix="doc-"): doc for doc in data}
-        _add_doc_keys = self.full_docs_storage.filter_keys(list(new_docs.keys()))
-        new_docs = {k: v for k, v in new_docs.items() if k in _add_doc_keys}
-
+        _add_doc_keys = self.full_docs_storage.filter_keys(list(batch.keys()))
+        new_docs = {k: v for k, v in batch.items() if k in _add_doc_keys}
         if len(new_docs) == 0:
             logger.warning("All documents are already in the storage")
             return
-
         self.full_docs_storage.upsert(new_docs)
         self.full_docs_storage.index_done_callback()
 

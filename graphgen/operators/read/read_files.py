@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Iterator, List, Optional
 
 from graphgen.models import (
     CSVReader,
@@ -12,6 +12,8 @@ from graphgen.models import (
     TXTReader,
 )
 from graphgen.utils import logger
+
+from .parallel_file_scanner import ParallelFileScanner
 
 _MAPPING = {
     "jsonl": JSONLReader,
@@ -39,7 +41,20 @@ def read_files(
     input_file: str,
     allowed_suffix: Optional[List[str]] = None,
     cache_dir: Optional[str] = None,
-) -> list[dict]:
+    max_workers: int = 4,
+    rescan: bool = False,
+) -> Iterator[Dict[str, Any]]:
+    """
+    Read files from a path using parallel scanning and appropriate readers.
+
+    Args:
+        input_file: Path to a file or directory
+        allowed_suffix: List of file suffixes to read. If None, uses all supported types
+        cache_dir: Directory for caching PDF extraction and scan results
+        max_workers: Number of workers for parallel scanning
+        rescan: Whether to force rescan even if cached results exist
+    """
+
     path = Path(input_file).expanduser()
     if not path.exists():
         raise FileNotFoundError(f"input_path not found: {input_file}")
@@ -49,24 +64,22 @@ def read_files(
     else:
         support_suffix = {s.lower().lstrip(".") for s in allowed_suffix}
 
-    # single file
-    if path.is_file():
-        suffix = path.suffix.lstrip(".").lower()
-        if suffix not in support_suffix:
-            logger.warning(
-                "Skip file %s (suffix '%s' not in allowed_suffix %s)",
-                path,
-                suffix,
-                support_suffix,
-            )
-            return []
-        reader = _build_reader(suffix, cache_dir)
-        return reader.read(str(path))
+    with ParallelFileScanner(
+        cache_dir=cache_dir or "cache",
+        allowed_suffix=support_suffix,
+        rescan=rescan,
+        max_workers=max_workers,
+    ) as scanner:
+        scan_results = scanner.scan(str(path), recursive=True)
 
-    # folder
-    files_to_read = [
-        p for p in path.rglob("*") if p.suffix.lstrip(".").lower() in support_suffix
-    ]
+    # Extract files from scan results
+    files_to_read = []
+    for path_result in scan_results.values():
+        if "error" in path_result:
+            logger.warning("Error scanning %s: %s", path_result.path, path_result.error)
+            continue
+        files_to_read.extend(path_result.get("files", []))
+
     logger.info(
         "Found %d eligible file(s) under folder %s (allowed_suffix=%s)",
         len(files_to_read),
@@ -74,13 +87,13 @@ def read_files(
         support_suffix,
     )
 
-    all_docs: List[Dict[str, Any]] = []
-    for p in files_to_read:
+    for file_info in files_to_read:
         try:
-            suffix = p.suffix.lstrip(".").lower()
+            file_path = file_info["path"]
+            suffix = Path(file_path).suffix.lstrip(".").lower()
             reader = _build_reader(suffix, cache_dir)
-            all_docs.extend(reader.read(str(p)))
-        except Exception as e:  # pylint: disable=broad-except
-            logger.exception("Error reading %s: %s", p, e)
 
-    return all_docs
+            yield from reader.read(file_path)
+
+        except Exception as e:  # pylint: disable=broad-except
+            logger.exception("Error reading %s: %s", file_info.get("path"), e)

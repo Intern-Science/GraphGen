@@ -92,23 +92,3 @@ class JsonListStorage(BaseListStorage):
 
     def drop(self):
         self._data = []
-
-
-@dataclass
-class MetaJsonKVStorage(JsonKVStorage):
-    def __post_init__(self):
-        self._file_name = os.path.join(self.working_dir, f"{self.namespace}.json")
-        self._data = load_json(self._file_name) or {}
-        logger.info("Load KV %s with %d data", self.namespace, len(self._data))
-
-    def get_new_data(self, storage_instance: "JsonKVStorage") -> dict:
-        new_data = {}
-        for k, v in storage_instance.data.items():
-            if k not in self._data:
-                new_data[k] = v
-        return new_data
-
-    def mark_done(self, storage_instance: "JsonKVStorage"):
-        new_data = self.get_new_data(storage_instance)
-        if new_data:
-            self._data.update(new_data)

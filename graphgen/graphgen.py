@@ -9,7 +9,6 @@ from graphgen.bases.datatypes import Chunk
 from graphgen.models import (
     JsonKVStorage,
     JsonListStorage,
-    MetaJsonKVStorage,
     NetworkXStorage,
     OpenAIClient,
     Tokenizer,
@@ -54,9 +53,6 @@ class GraphGen:
         )
         self.trainee_llm_client: BaseLLMWrapper = trainee_llm_client
 
-        self.meta_storage: MetaJsonKVStorage = MetaJsonKVStorage(
-            self.working_dir, namespace="_meta"
-        )
         self.full_docs_storage: JsonKVStorage = JsonKVStorage(
             self.working_dir, namespace="full_docs"
         )
@@ -98,11 +94,7 @@ class GraphGen:
         batch = {}
         for doc in doc_stream:
             doc_id = compute_mm_hash(doc, prefix="doc-")
-
             batch[doc_id] = doc
-        if batch:
-            self.full_docs_storage.upsert(batch)
-            self.full_docs_storage.index_done_callback()
 
         # TODO: configurable whether to use coreference resolution
 
@@ -120,7 +112,7 @@ class GraphGen:
         chunk documents into smaller pieces from full_docs_storage if not already present
         """
 
-        new_docs = self.meta_storage.get_new_data(self.full_docs_storage)
+        new_docs = self.full_docs_storage.get_all()
         if len(new_docs) == 0:
             logger.warning("All documents are already in the storage")
             return
@@ -143,16 +135,15 @@ class GraphGen:
 
         self.chunks_storage.upsert(inserting_chunks)
         self.chunks_storage.index_done_callback()
-        self.meta_storage.mark_done(self.full_docs_storage)
-        self.meta_storage.index_done_callback()
 
     @async_to_sync_method
     async def build_kg(self):
         """
         build knowledge graph from text chunks
         """
-        # Step 1: get new chunks according to meta and chunks storage
-        inserting_chunks = self.meta_storage.get_new_data(self.chunks_storage)
+        # Step 1: get new chunks
+        inserting_chunks = self.chunks_storage.get_all()
+
         if len(inserting_chunks) == 0:
             logger.warning("All chunks are already in the storage")
             return
@@ -169,10 +160,8 @@ class GraphGen:
             logger.warning("No entities or relations extracted from text chunks")
             return
 
-        # Step 3: mark meta
+        # Step 3: upsert new entities and relations to the graph storage
         self.graph_storage.index_done_callback()
-        self.meta_storage.mark_done(self.chunks_storage)
-        self.meta_storage.index_done_callback()
 
         return _add_entities_and_relations
 
@@ -180,7 +169,7 @@ class GraphGen:
     async def search(self, search_config: Dict):
         logger.info("[Search] %s ...", ", ".join(search_config["data_sources"]))
 
-        seeds = self.meta_storage.get_new_data(self.full_docs_storage)
+        seeds = self.full_docs_storage.get_all()
         if len(seeds) == 0:
             logger.warning("All documents are already been searched")
             return
@@ -198,8 +187,6 @@ class GraphGen:
             return
         self.search_storage.upsert(search_results)
         self.search_storage.index_done_callback()
-        self.meta_storage.mark_done(self.full_docs_storage)
-        self.meta_storage.index_done_callback()
 
     @async_to_sync_method
     async def quiz_and_judge(self, quiz_and_judge_config: Dict):
@@ -268,8 +255,6 @@ class GraphGen:
 
         self.extract_storage.upsert(results)
         self.extract_storage.index_done_callback()
-        self.meta_storage.mark_done(self.chunks_storage)
-        self.meta_storage.index_done_callback()
 
     @async_to_sync_method
     async def generate(self, generate_config: Dict):

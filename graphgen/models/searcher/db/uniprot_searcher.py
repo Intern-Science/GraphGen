@@ -27,12 +27,16 @@ def _get_pool():
     return ThreadPoolExecutor(max_workers=10)
 
 
+# ensure only one BLAST searcher at a time
+_blast_lock = asyncio.Lock()
+
+
 class UniProtSearch(BaseSearcher):
     """
     UniProt Search client to searcher with UniProt.
     1) Get the protein by accession number.
     2) Search with keywords or protein names (fuzzy searcher).
-    3) Search with FASTA sequence (BLAST searcher).
+    3) Search with FASTA sequence (BLAST searcher). Note that NCBIWWW does not support async.
     """
 
     def __init__(self, use_local_blast: bool = False, local_blast_db: str = "sp_db"):
@@ -230,22 +234,21 @@ class UniProtSearch(BaseSearcher):
         if query.startswith(">") or re.fullmatch(
             r"[ACDEFGHIKLMNPQRSTVWY\s]+", query, re.I
         ):
-            coro = loop.run_in_executor(
-                _get_pool(), self.get_by_fasta, query, threshold
-            )
+            async with _blast_lock:
+                result = await loop.run_in_executor(
+                    _get_pool(), self.get_by_fasta, query, threshold
+                )
 
         # check if accession number
         elif re.fullmatch(r"[A-NR-Z0-9]{6,10}", query, re.I):
-            coro = loop.run_in_executor(_get_pool(), self.get_by_accession, query)
+            result = await loop.run_in_executor(
+                _get_pool(), self.get_by_accession, query
+            )
 
         else:
             # otherwise treat as keyword
-            coro = loop.run_in_executor(_get_pool(), self.get_best_hit, query)
+            result = await loop.run_in_executor(_get_pool(), self.get_best_hit, query)
 
-        result = await coro
         if result:
             result["_search_query"] = query
         return result
-
-
-# TODO: use local UniProt database for large-scale searchs

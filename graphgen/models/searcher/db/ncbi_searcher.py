@@ -41,6 +41,38 @@ class NCBISearch(BaseSearcher):
         Entrez.tool = tool
         Entrez.timeout = 60  # 60 seconds timeout
 
+    @staticmethod
+    def _gene_record_to_dict(gene_record, gene_id: str) -> dict:
+        """
+        Convert an Entrez gene record to a dictionary.
+        :param gene_record: The Entrez gene record (list from Entrez.read).
+        :param gene_id: The gene ID.
+        :return: A dictionary containing gene information.
+        """
+        if not gene_record:
+            raise ValueError("Empty gene record")
+
+        gene_data = gene_record[0]
+        gene_ref = gene_data.get("Entrezgene_gene", {}).get("Gene-ref", {})
+
+        organism = (
+            gene_data.get("Entrezgene_source", {})
+            .get("BioSource", {})
+            .get("BioSource_org", {})
+            .get("Org-ref", {})
+            .get("Org-ref_taxname", "N/A")
+        )
+
+        return {
+            "molecule_type": "DNA",
+            "database": "NCBI",
+            "id": gene_id,
+            "gene_name": gene_ref.get("Gene-ref_locus", "N/A"),
+            "gene_description": gene_ref.get("Gene-ref_desc", "N/A"),
+            "organism": organism,
+            "url": f"https://www.ncbi.nlm.nih.gov/gene/{gene_id}",
+        }
+
     def get_by_gene_id(self, gene_id: str) -> Optional[dict]:
         """
         Get gene information by Gene ID.
@@ -54,26 +86,7 @@ class NCBISearch(BaseSearcher):
                 gene_record = Entrez.read(handle)
                 if not gene_record:
                     return None
-
-                gene_data = gene_record[0]
-                gene_ref = gene_data.get("Entrezgene_gene", {}).get("Gene-ref", {})
-
-                organism = (
-                    gene_data.get("Entrezgene_source", {})
-                    .get("BioSource", {})
-                    .get("BioSource_org", {})
-                    .get("Org-ref", {})
-                    .get("Org-ref_taxname", "N/A")
-                )
-                return {
-                    "molecule_type": "DNA",
-                    "database": "NCBI",
-                    "id": gene_id,
-                    "gene_name": gene_ref.get("Gene-ref_locus", "N/A"),
-                    "gene_description": gene_ref.get("Gene-ref_desc", "N/A"),
-                    "organism": organism,
-                    "url": f"https://www.ncbi.nlm.nih.gov/gene/{gene_id}",
-                }
+                return self._gene_record_to_dict(gene_record, gene_id)
             finally:
                 handle.close()
         except RequestException:
@@ -82,6 +95,28 @@ class NCBISearch(BaseSearcher):
             logger.error("Gene ID %s not found: %s", gene_id, exc)
             return None
 
+    @staticmethod
+    def _accession_to_dict(accession: str, sequence: str, header: str, title: str, organism: str) -> dict:
+        """
+        Convert accession information to a dictionary.
+        :param accession: NCBI accession number.
+        :param sequence: DNA sequence.
+        :param header: FASTA header.
+        :param title: Sequence title.
+        :param organism: Organism name.
+        :return: A dictionary containing sequence information.
+        """
+        return {
+            "molecule_type": "DNA",
+            "database": "NCBI",
+            "id": accession,
+            "title": title,
+            "organism": organism,
+            "sequence": sequence,
+            "sequence_length": len(sequence),
+            "url": f"https://www.ncbi.nlm.nih.gov/nuccore/{accession}",
+        }
+
     def get_by_accession(self, accession: str) -> Optional[dict]:
         """
         Get sequence information by accession number.
@@ -89,7 +124,7 @@ class NCBISearch(BaseSearcher):
         :return: A dictionary containing sequence information or None if not found.
         """
         try:
-            time.sleep(0.35)  # 遵守速率限制
+            time.sleep(0.35)  # Comply with rate limit
             handle = Entrez.efetch(
                 db="nuccore",
                 id=accession,
@@ -120,16 +155,7 @@ class NCBISearch(BaseSearcher):
                 finally:
                     summary_handle.close()
 
-                return {
-                    "molecule_type": "DNA",
-                    "database": "NCBI",
-                    "id": accession,
-                    "title": title,
-                    "organism": organism,
-                    "sequence": sequence,
-                    "sequence_length": len(sequence),
-                    "url": f"https://www.ncbi.nlm.nih.gov/nuccore/{accession}",
-                }
+                return self._accession_to_dict(accession, sequence, header, title, organism)
             finally:
                 handle.close()
         except RequestException:
@@ -138,7 +164,7 @@ class NCBISearch(BaseSearcher):
             logger.error("Accession %s not found: %s", accession, exc)
             return None
 
-    def search_by_keyword(self, keyword: str) -> Optional[dict]:
+    def get_best_hit(self, keyword: str) -> Optional[dict]:
         """
         Search NCBI Gene database with a keyword and return the best hit.
         :param keyword: The search keyword (e.g., gene name).
@@ -148,7 +174,7 @@ class NCBISearch(BaseSearcher):
             return None
 
         try:
-            time.sleep(0.35)  # 遵守速率限制
+            time.sleep(0.35)  # Comply with rate limit
             # Search gene database
             search_handle = Entrez.esearch(
                 db="gene",
@@ -181,11 +207,12 @@ class NCBISearch(BaseSearcher):
             logger.error("Keyword %s not found: %s", keyword, e)
         return None
 
-    def search_by_sequence(self, sequence: str) -> Optional[dict]:
+    def search_by_sequence(self, sequence: str, threshold: float = 0.01) -> Optional[dict]:
         """
         Search NCBI with a DNA sequence using BLAST.
         Note: This is a simplified version. For production, consider using local BLAST.
         :param sequence: DNA sequence (FASTA format or raw sequence).
+        :param threshold: E-value threshold for BLAST search.
         :return: A dictionary containing the best hit information or None if not found.
         """
         try:
@@ -215,7 +242,7 @@ class NCBISearch(BaseSearcher):
                 database="nr",
                 sequence=seq,
                 hitlist_size=1,
-                expect=0.001,
+                expect=threshold,
             )
             blast_record = NCBIXML.read(result_handle)
 
@@ -225,6 +252,9 @@ class NCBISearch(BaseSearcher):
 
             best_alignment = blast_record.alignments[0]
             best_hsp = best_alignment.hsps[0]
+            if best_hsp.expect > threshold:
+                logger.info("No BLAST hits below the threshold E-value.")
+                return None
             hit_id = best_alignment.hit_id
 
             # Extract accession number
@@ -257,11 +287,12 @@ class NCBISearch(BaseSearcher):
         reraise=True,
     )
     async def search(
-        self, query: str, **kwargs
+        self, query: str, threshold: float = 0.01, **kwargs
     ) -> Optional[Dict]:
         """
         Search NCBI with either a gene ID, accession number, keyword, or DNA sequence.
         :param query: The search query (gene ID, accession, keyword, or DNA sequence).
+        :param threshold: E-value threshold for BLAST search.
         :param kwargs: Additional keyword arguments (not used currently).
         :return: A dictionary containing the search results or None if not found.
         """
@@ -278,7 +309,7 @@ class NCBISearch(BaseSearcher):
         # check if DNA sequence (ATCG characters)
         if query.startswith(">") or re.fullmatch(r"[ATCGN\s]+", query, re.I):
             result = await loop.run_in_executor(
-                _get_pool(), self.search_by_sequence, query
+                _get_pool(), self.search_by_sequence, query, threshold
             )
         # check if gene ID (numeric)
         elif re.fullmatch(r"^\d+$", query):
@@ -293,7 +324,7 @@ class NCBISearch(BaseSearcher):
         else:
             # otherwise treat as keyword
             result = await loop.run_in_executor(
-                _get_pool(), self.search_by_keyword, query
+                _get_pool(), self.get_best_hit, query
             )
 
         if result:

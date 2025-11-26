@@ -36,6 +36,27 @@ class RNACentralSearch(BaseSearcher):
         self.base_url = "https://rnacentral.org/api/v1"
         self.headers = {"Accept": "application/json"}
 
+    @staticmethod
+    def _rna_data_to_dict(rna_id: str, rna_data: dict) -> dict:
+        """
+        Convert RNAcentral API response to a dictionary.
+        :param rna_id: RNAcentral ID.
+        :param rna_data: API response data (dict or dict-like from search results).
+        :return: A dictionary containing RNA information.
+        """
+        sequence = rna_data.get("sequence", "")
+        return {
+            "molecule_type": "RNA",
+            "database": "RNAcentral",
+            "id": rna_id,
+            "rnacentral_id": rna_data.get("rnacentral_id", rna_id),
+            "sequence": sequence,
+            "sequence_length": rna_data.get("length", len(sequence)),
+            "rna_type": rna_data.get("rna_type", "N/A"),
+            "description": rna_data.get("description", "N/A"),
+            "url": f"https://rnacentral.org/rna/{rna_id}",
+        }
+
     async def get_by_rna_id(self, rna_id: str) -> Optional[dict]:
         """
         Get RNA information by RNAcentral ID.
@@ -50,26 +71,19 @@ class RNACentralSearch(BaseSearcher):
                 ) as resp:
                     if resp.status == 200:
                         rna_data = await resp.json()
-                        return {
-                            "molecule_type": "RNA",
-                            "database": "RNAcentral",
-                            "id": rna_id,
-                            "rnacentral_id": rna_data.get("rnacentral_id", "N/A"),
-                            "sequence": rna_data.get("sequence", ""),
-                            "sequence_length": len(rna_data.get("sequence", "")),
-                            "rna_type": rna_data.get("rna_type", "N/A"),
-                            "description": rna_data.get("description", "N/A"),
-                            "url": f"https://rnacentral.org/rna/{rna_id}",
-                        }
+                        return self._rna_data_to_dict(rna_id, rna_data)
                     if resp.status == 404:
                         logger.error("RNA ID %s not found", rna_id)
                         return None
                     raise Exception(f"HTTP {resp.status}: {await resp.text()}")
+        except aiohttp.ClientError as e:
+            logger.error("Network error getting RNA ID %s: %s", rna_id, e)
+            return None
         except Exception as exc:  # pylint: disable=broad-except
             logger.error("RNA ID %s not found: %s", rna_id, exc)
             return None
 
-    async def search_by_keyword(self, keyword: str) -> Optional[dict]:
+    async def get_best_hit(self, keyword: str) -> Optional[dict]:
         """
         Search RNAcentral with a keyword and return the best hit.
         :param keyword: The search keyword (e.g., miRNA name, RNA name).
@@ -90,13 +104,26 @@ class RNACentralSearch(BaseSearcher):
                 ) as resp:
                     if resp.status == 200:
                         search_results = await resp.json()
-                        if search_results.get("results"):
-                            rna_id = search_results["results"][0].get("rnacentral_id")
+                        results = search_results.get("results", [])
+                        if results:
+                            # Use the first result directly (search API already returns enough info)
+                            first_result = results[0]
+                            rna_id = first_result.get("rnacentral_id")
                             if rna_id:
-                                return await self.get_by_rna_id(rna_id)
+                                # Try to get detailed info, but fall back to search result if it fails
+                                detailed_info = await self.get_by_rna_id(rna_id)
+                                if detailed_info:
+                                    return detailed_info
+                                # Fall back to using search result data
+                                return self._rna_data_to_dict(rna_id, first_result)
                         logger.info("No results found for keyword: %s", keyword)
                         return None
-                    raise Exception(f"HTTP {resp.status}: {await resp.text()}")
+                    error_text = await resp.text()
+                    logger.error("HTTP %d error for keyword %s: %s", resp.status, keyword, error_text[:200])
+                    raise Exception(f"HTTP {resp.status}: {error_text}")
+        except aiohttp.ClientError as e:
+            logger.error("Network error searching for keyword %s: %s", keyword, e)
+            return None
         except Exception as e:  # pylint: disable=broad-except
             logger.error("Keyword %s not found: %s", keyword, e)
             return None
@@ -136,13 +163,39 @@ class RNACentralSearch(BaseSearcher):
                 ) as resp:
                     if resp.status == 200:
                         search_results = await resp.json()
-                        if search_results.get("results"):
-                            rna_id = search_results["results"][0].get("rnacentral_id")
+                        results = search_results.get("results", [])
+                        if results:
+                            # First, try to find an exact sequence match
+                            exact_match = None
+                            for result in results:
+                                result_seq = result.get("sequence", "")
+                                if result_seq == seq:
+                                    exact_match = result
+                                    break
+                            
+                            # Use exact match if found, otherwise use first result
+                            target_result = exact_match if exact_match else results[0]
+                            rna_id = target_result.get("rnacentral_id")
+                            
                             if rna_id:
-                                return await self.get_by_rna_id(rna_id)
+                                # Try to get detailed info, but fall back to search result if it fails
+                                try:
+                                    detailed_info = await self.get_by_rna_id(rna_id)
+                                    if detailed_info:
+                                        return detailed_info
+                                except Exception as e:
+                                    logger.debug("Failed to get detailed info for %s: %s, using search result", rna_id, e)
+                                
+                                # Fall back to using search result data
+                                return self._rna_data_to_dict(rna_id, target_result)
                         logger.info("No results found for sequence.")
                         return None
-                    raise Exception(f"HTTP {resp.status}: {await resp.text()}")
+                    error_text = await resp.text()
+                    logger.error("HTTP %d error for sequence search: %s", resp.status, error_text[:200])
+                    raise Exception(f"HTTP {resp.status}: {error_text}")
+        except aiohttp.ClientError as e:
+            logger.error("Network error searching for sequence: %s", e)
+            return None
         except Exception as e:  # pylint: disable=broad-except
             logger.error("Sequence search failed: %s", e)
             return None
@@ -154,11 +207,13 @@ class RNACentralSearch(BaseSearcher):
         reraise=True,
     )
     async def search(
-        self, query: str, **kwargs
+        self, query: str, threshold: float = 0.7, **kwargs
     ) -> Optional[Dict]:
         """
         Search RNAcentral with either an RNAcentral ID, keyword, or RNA sequence.
         :param query: The search query (RNAcentral ID, keyword, or RNA sequence).
+        :param threshold: E-value threshold for sequence search.
+        Note: RNAcentral API uses its own similarity matching, this parameter is for interface consistency.
         :param kwargs: Additional keyword arguments (not used currently).
         :return: A dictionary containing the search results or None if not found.
         """
@@ -180,7 +235,7 @@ class RNACentralSearch(BaseSearcher):
             result = await self.get_by_rna_id(query)
         else:
             # otherwise treat as keyword
-            result = await self.search_by_keyword(query)
+            result = await self.get_best_hit(query)
 
         if result:
             result["_search_query"] = query

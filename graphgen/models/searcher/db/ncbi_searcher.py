@@ -54,17 +54,24 @@ class NCBISearch(BaseSearcher):
                 gene_record = Entrez.read(handle)
                 if not gene_record:
                     return None
-                
+
                 gene_data = gene_record[0]
                 gene_ref = gene_data.get("Entrezgene_gene", {}).get("Gene-ref", {})
-                
+
+                organism = (
+                    gene_data.get("Entrezgene_source", {})
+                    .get("BioSource", {})
+                    .get("BioSource_org", {})
+                    .get("Org-ref", {})
+                    .get("Org-ref_taxname", "N/A")
+                )
                 return {
                     "molecule_type": "DNA",
                     "database": "NCBI",
                     "id": gene_id,
                     "gene_name": gene_ref.get("Gene-ref_locus", "N/A"),
                     "gene_description": gene_ref.get("Gene-ref_desc", "N/A"),
-                    "organism": gene_data.get("Entrezgene_source", {}).get("BioSource", {}).get("BioSource_org", {}).get("Org-ref", {}).get("Org-ref_taxname", "N/A"),
+                    "organism": organism,
                     "url": f"https://www.ncbi.nlm.nih.gov/gene/{gene_id}",
                 }
             finally:
@@ -93,11 +100,11 @@ class NCBISearch(BaseSearcher):
                 sequence_data = handle.read()
                 if not sequence_data:
                     return None
-                
+
                 seq_lines = sequence_data.strip().split("\n")
                 header = seq_lines[0] if seq_lines else ""
                 sequence = "".join(seq_lines[1:])
-                
+
                 # Try to get more information
                 time.sleep(0.35)
                 summary_handle = Entrez.esummary(db="nuccore", id=accession)
@@ -112,7 +119,7 @@ class NCBISearch(BaseSearcher):
                         organism = "N/A"
                 finally:
                     summary_handle.close()
-                
+
                 return {
                     "molecule_type": "DNA",
                     "database": "NCBI",
@@ -162,7 +169,7 @@ class NCBISearch(BaseSearcher):
                         search_results = Entrez.read(search_handle2)
                     finally:
                         search_handle2.close()
-                
+
                 if search_results.get("IdList"):
                     gene_id = search_results["IdList"][0]
                     return self.get_by_gene_id(gene_id)
@@ -188,21 +195,21 @@ class NCBISearch(BaseSearcher):
                 seq = "".join(seq_lines[1:])
             else:
                 seq = sequence.strip().replace(" ", "").replace("\n", "")
-            
+
             # Validate if it's a DNA sequence
             if not re.fullmatch(r"[ATCGN\s]+", seq, re.I):
                 logger.error("Invalid DNA sequence provided.")
                 return None
-            
+
             if not seq:
                 logger.error("Empty DNA sequence provided.")
                 return None
-            
+
             # Use BLAST search (Note: requires network connection, may be slow)
             logger.debug("Performing BLAST search for DNA sequence...")
             time.sleep(0.35)
             from Bio.Blast import NCBIWWW, NCBIXML
-            
+
             result_handle = NCBIWWW.qblast(
                 program="blastn",
                 database="nr",
@@ -211,33 +218,32 @@ class NCBISearch(BaseSearcher):
                 expect=0.001,
             )
             blast_record = NCBIXML.read(result_handle)
-            
+
             if not blast_record.alignments:
                 logger.info("No BLAST hits found for the given sequence.")
                 return None
-            
+
             best_alignment = blast_record.alignments[0]
             best_hsp = best_alignment.hsps[0]
             hit_id = best_alignment.hit_id
-            
+
             # Extract accession number
             # Format may be: gi|123456|ref|NM_000546.5|
             accession_match = re.search(r"ref\|([^|]+)", hit_id)
             if accession_match:
                 accession = accession_match.group(1).split(".")[0]
                 return self.get_by_accession(accession)
-            else:
-                # If unable to extract accession, return basic information
-                return {
-                    "molecule_type": "DNA",
-                    "database": "NCBI",
-                    "id": hit_id,
-                    "title": best_alignment.title,
-                    "sequence_length": len(seq),
-                    "e_value": best_hsp.expect,
-                    "identity": best_hsp.identities / best_hsp.align_length if best_hsp.align_length > 0 else 0,
-                    "url": f"https://www.ncbi.nlm.nih.gov/nuccore/{hit_id}",
-                }
+            # If unable to extract accession, return basic information
+            return {
+                "molecule_type": "DNA",
+                "database": "NCBI",
+                "id": hit_id,
+                "title": best_alignment.title,
+                "sequence_length": len(seq),
+                "e_value": best_hsp.expect,
+                "identity": best_hsp.identities / best_hsp.align_length if best_hsp.align_length > 0 else 0,
+                "url": f"https://www.ncbi.nlm.nih.gov/nuccore/{hit_id}",
+            }
         except RequestException:
             raise
         except Exception as e:  # pylint: disable=broad-except
@@ -293,4 +299,3 @@ class NCBISearch(BaseSearcher):
         if result:
             result["_search_query"] = query
         return result
-

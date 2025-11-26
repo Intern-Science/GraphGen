@@ -61,11 +61,10 @@ class RNACentralSearch(BaseSearcher):
                             "description": rna_data.get("description", "N/A"),
                             "url": f"https://rnacentral.org/rna/{rna_id}",
                         }
-                    elif resp.status == 404:
+                    if resp.status == 404:
                         logger.error("RNA ID %s not found", rna_id)
                         return None
-                    else:
-                        raise Exception(f"HTTP {resp.status}: {await resp.text()}")
+                    raise Exception(f"HTTP {resp.status}: {await resp.text()}")
         except Exception as exc:  # pylint: disable=broad-except
             logger.error("RNA ID %s not found: %s", rna_id, exc)
             return None
@@ -97,8 +96,7 @@ class RNACentralSearch(BaseSearcher):
                                 return await self.get_by_rna_id(rna_id)
                         logger.info("No results found for keyword: %s", keyword)
                         return None
-                    else:
-                        raise Exception(f"HTTP {resp.status}: {await resp.text()}")
+                    raise Exception(f"HTTP {resp.status}: {await resp.text()}")
         except Exception as e:  # pylint: disable=broad-except
             logger.error("Keyword %s not found: %s", keyword, e)
             return None
@@ -116,16 +114,16 @@ class RNACentralSearch(BaseSearcher):
                 seq = "".join(seq_lines[1:])
             else:
                 seq = sequence.strip().replace(" ", "").replace("\n", "")
-            
+
             # Validate if it's an RNA sequence (contains U instead of T)
             if not re.fullmatch(r"[AUCGN\s]+", seq, re.I):
                 logger.error("Invalid RNA sequence provided.")
                 return None
-            
+
             if not seq:
                 logger.error("Empty RNA sequence provided.")
                 return None
-            
+
             # RNAcentral API supports sequence search
             async with aiohttp.ClientSession() as session:
                 search_url = f"{self.base_url}/rna"
@@ -144,8 +142,7 @@ class RNACentralSearch(BaseSearcher):
                                 return await self.get_by_rna_id(rna_id)
                         logger.info("No results found for sequence.")
                         return None
-                    else:
-                        raise Exception(f"HTTP {resp.status}: {await resp.text()}")
+                    raise Exception(f"HTTP {resp.status}: {await resp.text()}")
         except Exception as e:  # pylint: disable=broad-except
             logger.error("Sequence search failed: %s", e)
             return None
@@ -188,4 +185,3 @@ class RNACentralSearch(BaseSearcher):
         if result:
             result["_search_query"] = query
         return result
-

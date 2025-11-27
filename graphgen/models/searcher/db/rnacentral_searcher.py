@@ -19,7 +19,7 @@ class RNACentralSearch(BaseSearcher):
     1) Get RNA by RNAcentral ID.
     2) Search with keywords or RNA names (fuzzy search).
     3) Search with RNA sequence.
-    
+
     API Documentation: https://rnacentral.org/api/v1
     """
 
@@ -37,7 +37,7 @@ class RNACentralSearch(BaseSearcher):
         """
         all_xrefs = []
         current_url = xrefs_url
-        
+
         while current_url:
             try:
                 async with session.get(
@@ -47,12 +47,12 @@ class RNACentralSearch(BaseSearcher):
                         data = await resp.json()
                         results = data.get("results", [])
                         all_xrefs.extend(results)
-                        
+
                         # Check if there's a next page
                         current_url = data.get("next")
                         if not current_url:
                             break
-                        
+
                         # Small delay to avoid rate limiting
                         await asyncio.sleep(0.2)
                     else:
@@ -61,7 +61,7 @@ class RNACentralSearch(BaseSearcher):
             except Exception as e:
                 logger.warning("Error fetching xrefs from %s: %s", current_url, e)
                 break
-        
+
         return all_xrefs
 
     @staticmethod
@@ -78,31 +78,31 @@ class RNACentralSearch(BaseSearcher):
             "so_terms": set(),
             "xrefs_list": [],
         }
-        
+
         for xref in xrefs:
             # Extract accession information
             accession = xref.get("accession", {})
-            
+
             # Extract species information
             species = accession.get("species")
             if species:
                 extracted["organisms"].add(species)
-            
+
             # Extract gene name
             gene = accession.get("gene")
             if gene and gene.strip():  # Only add non-empty genes
                 extracted["gene_names"].add(gene.strip())
-            
+
             # Extract modifications
             modifications = xref.get("modifications", [])
             if modifications:
                 extracted["modifications"].extend(modifications)
-            
+
             # Extract SO term (biotype)
             biotype = accession.get("biotype")
             if biotype:
                 extracted["so_terms"].add(biotype)
-            
+
             # Build xrefs list
             xref_info = {
                 "database": xref.get("database"),
@@ -113,24 +113,24 @@ class RNACentralSearch(BaseSearcher):
                 "gene": gene,
             }
             extracted["xrefs_list"].append(xref_info)
-        
+
         # Convert sets to appropriate formats
         return {
             "organism": (
-                list(extracted["organisms"])[0] 
-                if len(extracted["organisms"]) == 1 
+                list(extracted["organisms"])[0]
+                if len(extracted["organisms"]) == 1
                 else (", ".join(extracted["organisms"]) if extracted["organisms"] else None)
             ),
             "gene_name": (
-                list(extracted["gene_names"])[0] 
-                if len(extracted["gene_names"]) == 1 
+                list(extracted["gene_names"])[0]
+                if len(extracted["gene_names"]) == 1
                 else (", ".join(extracted["gene_names"]) if extracted["gene_names"] else None)
             ),
             "related_genes": list(extracted["gene_names"]) if extracted["gene_names"] else None,
             "modifications": extracted["modifications"] if extracted["modifications"] else None,
             "so_term": (
-                list(extracted["so_terms"])[0] 
-                if len(extracted["so_terms"]) == 1 
+                list(extracted["so_terms"])[0]
+                if len(extracted["so_terms"]) == 1
                 else (", ".join(extracted["so_terms"]) if extracted["so_terms"] else None)
             ),
             "xrefs": extracted["xrefs_list"] if extracted["xrefs_list"] else None,
@@ -146,12 +146,12 @@ class RNACentralSearch(BaseSearcher):
         :return: A dictionary containing RNA information.
         """
         sequence = rna_data.get("sequence", "")
-        
+
         # Initialize extracted info from xrefs if available
         extracted_info = {}
         if xrefs_data:
             extracted_info = RNACentralSearch._extract_info_from_xrefs(xrefs_data)
-        
+
         # Extract organism information (prefer from xrefs, fallback to main data)
         organism = extracted_info.get("organism")
         if not organism:
@@ -220,7 +220,7 @@ class RNACentralSearch(BaseSearcher):
                 ) as resp:
                     if resp.status == 200:
                         rna_data = await resp.json()
-                        
+
                         # Check if xrefs is a URL and fetch the actual xrefs data
                         xrefs_data = None
                         xrefs_url = rna_data.get("xrefs")
@@ -231,7 +231,7 @@ class RNACentralSearch(BaseSearcher):
                             except Exception as e:
                                 logger.warning("Failed to fetch xrefs for RNA ID %s: %s", rna_id, e)
                                 # Continue without xrefs data
-                        
+
                         return self._rna_data_to_dict(rna_id, rna_data, xrefs_data)
                     if resp.status == 404:
                         logger.error("RNA ID %s not found", rna_id)
@@ -271,16 +271,16 @@ class RNACentralSearch(BaseSearcher):
                             # Step 1: Get RNA ID from search results
                             first_result = results[0]
                             rna_id = first_result.get("rnacentral_id")
-                            
+
                             if rna_id:
                                 # Step 2: Unified call to get_by_rna_id() for complete information
                                 result = await self.get_by_rna_id(rna_id)
-                                
+
                                 # Step 3: If get_by_rna_id() failed, use search result data as fallback
                                 if not result:
                                     logger.debug("get_by_rna_id() failed for %s, using search result data", rna_id)
                                     result = self._rna_data_to_dict(rna_id, first_result)
-                                
+
                                 return result
                         logger.info("No results found for keyword: %s", keyword)
                         return None
@@ -339,20 +339,20 @@ class RNACentralSearch(BaseSearcher):
                                 if result_seq == seq:
                                     exact_match = result
                                     break
-                            
+
                             # Use exact match if found, otherwise use first result
                             target_result = exact_match if exact_match else results[0]
                             rna_id = target_result.get("rnacentral_id")
-                            
+
                             if rna_id:
                                 # Step 2: Unified call to get_by_rna_id() for complete information
                                 result = await self.get_by_rna_id(rna_id)
-                                
+
                                 # Step 3: If get_by_rna_id() failed, use search result data as fallback
                                 if not result:
                                     logger.debug("get_by_rna_id() failed for %s, using search result data", rna_id)
                                     result = self._rna_data_to_dict(rna_id, target_result)
-                                
+
                                 return result
                         logger.info("No results found for sequence.")
                         return None

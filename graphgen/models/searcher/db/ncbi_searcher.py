@@ -33,7 +33,7 @@ class NCBISearch(BaseSearcher):
     1) Get the gene/DNA by accession number or gene ID.
     2) Search with keywords or gene names (fuzzy search).
     3) Search with FASTA sequence (BLAST search for DNA sequences).
-    
+
     API Documentation: https://www.ncbi.nlm.nih.gov/home/develop/api/
     Note: NCBI has rate limits (max 3 requests per second), delays are required between requests.
     """
@@ -49,12 +49,11 @@ class NCBISearch(BaseSearcher):
         """Safely get value from dict or StringElement-like object."""
         if isinstance(obj, dict):
             return obj.get(key, default)
-        elif hasattr(obj, "get"):
+        if hasattr(obj, "get"):
             return obj.get(key, default)
-        elif hasattr(obj, key):
+        if hasattr(obj, key):
             return getattr(obj, key, default)
-        else:
-            return default
+        return default
 
     @staticmethod
     def _gene_record_to_dict(gene_record, gene_id: str) -> dict:
@@ -68,7 +67,7 @@ class NCBISearch(BaseSearcher):
             raise ValueError("Empty gene record")
 
         gene_data = gene_record[0]
-        
+
         # Safely extract gene_ref, handling both dict and StringElement types
         gene_ref = {}
         entrezgene_gene = gene_data.get("Entrezgene_gene")
@@ -146,7 +145,7 @@ class NCBISearch(BaseSearcher):
         # Note: Entrezgene_location doesn't exist, but Entrezgene_locus contains location info
         chromosome = None
         genomic_location = None
-        
+
         try:
             locus_data = gene_data.get("Entrezgene_locus")
             if locus_data and isinstance(locus_data, list) and locus_data:
@@ -159,7 +158,7 @@ class NCBISearch(BaseSearcher):
                         match = re.search(r'Chromosome\s+(\S+)', str(label))
                         if match:
                             chromosome = match.group(1)
-                    
+
                     # Extract genomic location from Gene-commentary_seqs
                     seqs = NCBISearch._safe_get(first_locus, "Gene-commentary_seqs", [])
                     if seqs and isinstance(seqs, list) and seqs:
@@ -255,7 +254,7 @@ class NCBISearch(BaseSearcher):
         reraise=True,
         before_sleep=before_sleep_log(logger, logging.WARNING),
     )
-    
+
     def get_by_gene_id(self, gene_id: str, preferred_accession: Optional[str] = None) -> Optional[dict]:
         """
         Get gene information by Gene ID.
@@ -272,7 +271,7 @@ class NCBISearch(BaseSearcher):
                 if not gene_record:
                     return None
                 result = self._gene_record_to_dict(gene_record, gene_id)
-                
+
                 # Try to get sequence from accession
                 # Priority: 1) preferred_accession (if provided), 2) representative mRNA accession
                 accession_to_use = preferred_accession or result.get("_representative_accession")
@@ -292,7 +291,7 @@ class NCBISearch(BaseSearcher):
                                 seq_lines = sequence_data.strip().split("\n")
                                 header = seq_lines[0] if seq_lines else ""
                                 sequence = "".join(seq_lines[1:])
-                                
+
                                 # Get summary for additional info
                                 time.sleep(0.35)
                                 summary_handle = Entrez.esummary(db="nuccore", id=accession_to_use)
@@ -301,7 +300,7 @@ class NCBISearch(BaseSearcher):
                                     if summary:
                                         summary_data = summary[0]
                                         title = summary_data.get("Title", header)
-                                        
+
                                         # Determine molecule type detail
                                         molecule_type_detail = "N/A"
                                         if accession_to_use.startswith("NM_") or accession_to_use.startswith("XM_"):
@@ -312,13 +311,13 @@ class NCBISearch(BaseSearcher):
                                             molecule_type_detail = "RNA"
                                         elif accession_to_use.startswith("NG_"):
                                             molecule_type_detail = "genomic region"
-                                        
+
                                         # Merge sequence information into result
                                         result["sequence"] = sequence
                                         result["sequence_length"] = len(sequence)
                                         result["title"] = title
                                         result["molecule_type_detail"] = molecule_type_detail
-                                        
+
                                         # Update chromosome and genomic_location if not already set
                                         if not result.get("chromosome"):
                                             chromosome = summary_data.get("ChrLoc") or summary_data.get("ChrAccVer")
@@ -337,9 +336,9 @@ class NCBISearch(BaseSearcher):
                         # Re-raise to allow retry mechanism
                         raise
                     except Exception as e:
-                        logger.debug("Failed to get sequence for accession %s: %s", 
+                        logger.debug("Failed to get sequence for accession %s: %s",
                                    accession_to_use, e)
-                
+
                 # Remove internal field
                 result.pop("_representative_accession", None)
                 return result
@@ -368,7 +367,7 @@ class NCBISearch(BaseSearcher):
             gene_id = None
             try:
                 links = Entrez.read(link_handle)
-                
+
                 # Extract GeneID from elink results
                 # Structure: links[0]["LinkSetDb"][0]["Link"][0]["Id"]
                 if links and len(links) > 0:
@@ -401,19 +400,19 @@ class NCBISearch(BaseSearcher):
                 # Continue to check if we got gene_id before the error
             finally:
                 link_handle.close()
-            
+
             # Step 2: If we have a GeneID, get complete information from Gene database
             # Pass the accession as preferred_accession so get_by_gene_id can use it for sequence
             if gene_id:
                 result = self.get_by_gene_id(gene_id, preferred_accession=accession)
-                
+
                 # Update id to accession for consistency (user searched by accession)
                 if result:
                     result["id"] = accession
                     result["url"] = f"https://www.ncbi.nlm.nih.gov/nuccore/{accession}"
-                
+
                 return result
-            
+
             # Step 3: If no GeneID, this is a rare case (accession without associated gene)
             # Return None - we can't provide complete information without Gene ID
             logger.warning("Accession %s has no associated GeneID, cannot provide complete information", accession)

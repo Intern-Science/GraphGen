@@ -12,4 +12,6 @@ pipeline:
       ncbi_params:
         email: test@example.com # NCBI requires an email address
         tool: GraphGen # tool name for NCBI API
+        use_local_blast: true # whether to use local blast for DNA search
+        local_blast_db: /your_path/refseq_241 # path to local BLAST database (without .nhr extension)
 

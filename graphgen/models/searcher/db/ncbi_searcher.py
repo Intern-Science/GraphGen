@@ -1,6 +1,9 @@
 import asyncio
 import logging
+import os
 import re
+import subprocess
+import tempfile
 import time
 from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
@@ -38,11 +41,22 @@ class NCBISearch(BaseSearcher):
     Note: NCBI has rate limits (max 3 requests per second), delays are required between requests.
     """
 
-    def __init__(self, email: str = "test@example.com", tool: str = "GraphGen"):
+    def __init__(
+        self,
+        email: str = "test@example.com",
+        tool: str = "GraphGen",
+        use_local_blast: bool = False,
+        local_blast_db: str = "nt_db",
+    ):
         super().__init__()
         Entrez.email = email
         Entrez.tool = tool
         Entrez.timeout = 60  # 60 seconds timeout
+        self.use_local_blast = use_local_blast
+        self.local_blast_db = local_blast_db
+        if self.use_local_blast and not os.path.isfile(f"{self.local_blast_db}.nhr"):
+            logger.error("Local BLAST database files not found. Please check the path.")
+            self.use_local_blast = False
 
     @staticmethod
     def _safe_get(obj, key, default=None):
@@ -518,10 +532,47 @@ class NCBISearch(BaseSearcher):
             logger.error("Keyword %s not found: %s", keyword, e)
         return None
 
+    def _local_blast(self, seq: str, threshold: float) -> Optional[str]:
+        """
+        Perform local BLAST search using local BLAST database.
+        :param seq: The DNA sequence.
+        :param threshold: E-value threshold for BLAST search.
+        :return: The accession number of the best hit or None if not found.
+        """
+        try:
+            with tempfile.NamedTemporaryFile(
+                mode="w+", suffix=".fa", delete=False
+            ) as tmp:
+                tmp.write(f">query\n{seq}\n")
+                tmp_name = tmp.name
+
+            cmd = [
+                "blastn",
+                "-db",
+                self.local_blast_db,
+                "-query",
+                tmp_name,
+                "-evalue",
+                str(threshold),
+                "-max_target_seqs",
+                "1",
+                "-outfmt",
+                "6 sacc",  # only return accession
+            ]
+            logger.debug("Running local blastn: %s", " ".join(cmd))
+            out = subprocess.check_output(cmd, text=True).strip()
+            os.remove(tmp_name)
+            if out:
+                return out.split("\n", maxsplit=1)[0]
+            return None
+        except Exception as exc:  # pylint: disable=broad-except
+            logger.error("Local blastn failed: %s", exc)
+            return None
+
     def search_by_sequence(self, sequence: str, threshold: float = 0.01) -> Optional[dict]:
         """
         Search NCBI with a DNA sequence using BLAST.
-        Note: This is a simplified version. For production, consider using local BLAST.
+        Tries local BLAST first if enabled, falls back to network BLAST.
         :param sequence: DNA sequence (FASTA format or raw sequence).
         :param threshold: E-value threshold for BLAST search.
         :return: A dictionary containing the best hit information or None if not found.
@@ -542,7 +593,16 @@ class NCBISearch(BaseSearcher):
                     logger.error("Invalid DNA sequence provided.")
                 return None
 
-            # Use BLAST search (Note: requires network connection, may be slow)
+            # Try local BLAST first if enabled
+            accession = None
+            if self.use_local_blast:
+                accession = self._local_blast(seq, threshold)
+                if accession:
+                    logger.debug("Local BLAST found accession: %s", accession)
+                    return self.get_by_accession(accession)
+
+            # Fall back to network BLAST
+            logger.debug("Falling back to NCBIWWW.qblast.")
             logger.debug("Performing BLAST search for DNA sequence...")
             time.sleep(0.35)
 

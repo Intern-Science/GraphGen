@@ -1,5 +1,8 @@
 import asyncio
+import os
 import re
+import subprocess
+import tempfile
 from typing import Dict, Optional, List, Any
 
 import aiohttp
@@ -23,10 +26,15 @@ class RNACentralSearch(BaseSearcher):
     API Documentation: https://rnacentral.org/api/v1
     """
 
-    def __init__(self):
+    def __init__(self, use_local_blast: bool = False, local_blast_db: str = "rna_db"):
         super().__init__()
         self.base_url = "https://rnacentral.org/api/v1"
         self.headers = {"Accept": "application/json"}
+        self.use_local_blast = use_local_blast
+        self.local_blast_db = local_blast_db
+        if self.use_local_blast and not os.path.isfile(f"{self.local_blast_db}.nhr"):
+            logger.error("Local BLAST database files not found. Please check the path.")
+            self.use_local_blast = False
 
     async def _fetch_all_xrefs(self, xrefs_url: str, session: aiohttp.ClientSession) -> List[Dict]:
         """
@@ -294,11 +302,50 @@ class RNACentralSearch(BaseSearcher):
             logger.error("Keyword %s not found: %s", keyword, e)
             return None
 
-    async def search_by_sequence(self, sequence: str) -> Optional[dict]:
+    def _local_blast(self, seq: str, threshold: float) -> Optional[str]:
+        """
+        Perform local BLAST search using local BLAST database.
+        :param seq: The RNA sequence.
+        :param threshold: E-value threshold for BLAST search.
+        :return: The accession/ID of the best hit or None if not found.
+        """
+        try:
+            with tempfile.NamedTemporaryFile(
+                mode="w+", suffix=".fa", delete=False
+            ) as tmp:
+                tmp.write(f">query\n{seq}\n")
+                tmp_name = tmp.name
+
+            cmd = [
+                "blastn",
+                "-db",
+                self.local_blast_db,
+                "-query",
+                tmp_name,
+                "-evalue",
+                str(threshold),
+                "-max_target_seqs",
+                "1",
+                "-outfmt",
+                "6 sacc",  # only return accession
+            ]
+            logger.debug("Running local blastn for RNA: %s", " ".join(cmd))
+            out = subprocess.check_output(cmd, text=True).strip()
+            os.remove(tmp_name)
+            if out:
+                return out.split("\n", maxsplit=1)[0]
+            return None
+        except Exception as exc:  # pylint: disable=broad-except
+            logger.error("Local blastn failed: %s", exc)
+            return None
+
+    async def search_by_sequence(self, sequence: str, threshold: float = 0.01) -> Optional[dict]:
         """
         Search RNAcentral with an RNA sequence.
+        Tries local BLAST first if enabled, falls back to RNAcentral API.
         Unified approach: Find RNA ID from sequence search, then call get_by_rna_id() for complete information.
         :param sequence: RNA sequence (FASTA format or raw sequence).
+        :param threshold: E-value threshold for BLAST search.
         :return: A dictionary containing complete RNA information or None if not found.
         """
         try:
@@ -318,7 +365,23 @@ class RNACentralSearch(BaseSearcher):
                 logger.error("Empty RNA sequence provided.")
                 return None
 
-            # RNAcentral API supports sequence search
+            # Try local BLAST first if enabled
+            if self.use_local_blast:
+                accession = self._local_blast(seq, threshold)
+                if accession:
+                    logger.debug("Local BLAST found accession: %s", accession)
+                    # Try to get RNA ID from accession (may need conversion)
+                    # For now, try using accession as RNA ID or search by it
+                    result = await self.get_by_rna_id(accession)
+                    if result:
+                        return result
+                    # If not found by ID, try keyword search
+                    result = await self.get_best_hit(accession)
+                    if result:
+                        return result
+
+            # Fall back to RNAcentral API
+            logger.debug("Falling back to RNAcentral API.")
             async with aiohttp.ClientSession() as session:
                 search_url = f"{self.base_url}/rna"
                 params = {"sequence": seq, "format": "json"}
@@ -373,7 +436,7 @@ class RNACentralSearch(BaseSearcher):
         reraise=True,
     )
     async def search(
-        self, query: str, threshold: float = 0.7, **kwargs
+        self, query: str, threshold: float = 0.1, **kwargs
     ) -> Optional[Dict]:
         """
         Search RNAcentral with either an RNAcentral ID, keyword, or RNA sequence.
@@ -395,7 +458,7 @@ class RNACentralSearch(BaseSearcher):
         if query.startswith(">") or (
             re.fullmatch(r"[AUCGN\s]+", query, re.I) and "U" in query.upper()
         ):
-            result = await self.search_by_sequence(query)
+            result = await self.search_by_sequence(query, threshold)
         # check if RNAcentral ID (typically starts with URS)
         elif re.fullmatch(r"URS\d+", query, re.I):
             result = await self.get_by_rna_id(query)

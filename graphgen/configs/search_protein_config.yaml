@@ -11,4 +11,5 @@ pipeline:
       data_sources: [uniprot] # data source for searcher, support: wikipedia, google, uniprot
       uniprot_params:
         use_local_blast: true # whether to use local blast for uniprot search
-        local_blast_db: /your_path/uniprot_sprot
+        local_blast_db: /your_path/2024_01/uniprot_sprot # format: /path/to/${RELEASE}/uniprot_sprot
+        # options: uniprot_sprot (recommended, high quality), uniprot_trembl, or uniprot_${RELEASE} (merged database)

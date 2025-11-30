@@ -74,129 +74,76 @@ class RNACentralSearch(BaseSearcher):
 
     @staticmethod
     def _extract_info_from_xrefs(xrefs: List[Dict]) -> Dict[str, Any]:
-        """
-        Extract information from xrefs data.
-        :param xrefs: List of xref entries.
-        :return: Dictionary with extracted information.
-        """
-        extracted = {
-            "organisms": set(),
-            "gene_names": set(),
-            "modifications": [],
-            "so_terms": set(),
-            "xrefs_list": [],
-        }
+        """Extract information from xrefs data."""
+        organisms = set()
+        gene_names = set()
+        modifications = []
+        so_terms = set()
+        xrefs_list = []
 
         for xref in xrefs:
-            # Extract accession information
             accession = xref.get("accession", {})
-
-            # Extract species information
             species = accession.get("species")
             if species:
-                extracted["organisms"].add(species)
+                organisms.add(species)
 
-            # Extract gene name
             gene = accession.get("gene")
-            if gene and gene.strip():  # Only add non-empty genes
-                extracted["gene_names"].add(gene.strip())
+            if gene and gene.strip():
+                gene_names.add(gene.strip())
 
-            # Extract modifications
-            modifications = xref.get("modifications", [])
-            if modifications:
-                extracted["modifications"].extend(modifications)
+            if mods := xref.get("modifications", []):
+                modifications.extend(mods)
 
-            # Extract SO term (biotype)
-            biotype = accession.get("biotype")
-            if biotype:
-                extracted["so_terms"].add(biotype)
+            if biotype := accession.get("biotype"):
+                so_terms.add(biotype)
 
-            # Build xrefs list
-            xref_info = {
+            xrefs_list.append({
                 "database": xref.get("database"),
                 "accession_id": accession.get("id"),
                 "external_id": accession.get("external_id"),
                 "description": accession.get("description"),
                 "species": species,
                 "gene": gene,
-            }
-            extracted["xrefs_list"].append(xref_info)
+            })
 
-        # Convert sets to appropriate formats
+        def _format_set(s):
+            """Format set to single value or comma-separated string."""
+            if not s:
+                return None
+            return list(s)[0] if len(s) == 1 else ", ".join(s)
+
         return {
-            "organism": (
-                list(extracted["organisms"])[0]
-                if len(extracted["organisms"]) == 1
-                else (", ".join(extracted["organisms"]) if extracted["organisms"] else None)
-            ),
-            "gene_name": (
-                list(extracted["gene_names"])[0]
-                if len(extracted["gene_names"]) == 1
-                else (", ".join(extracted["gene_names"]) if extracted["gene_names"] else None)
-            ),
-            "related_genes": list(extracted["gene_names"]) if extracted["gene_names"] else None,
-            "modifications": extracted["modifications"] if extracted["modifications"] else None,
-            "so_term": (
-                list(extracted["so_terms"])[0]
-                if len(extracted["so_terms"]) == 1
-                else (", ".join(extracted["so_terms"]) if extracted["so_terms"] else None)
-            ),
-            "xrefs": extracted["xrefs_list"] if extracted["xrefs_list"] else None,
+            "organism": _format_set(organisms),
+            "gene_name": _format_set(gene_names),
+            "related_genes": list(gene_names) if gene_names else None,
+            "modifications": modifications if modifications else None,
+            "so_term": _format_set(so_terms),
+            "xrefs": xrefs_list if xrefs_list else None,
         }
 
     @staticmethod
     def _rna_data_to_dict(rna_id: str, rna_data: dict, xrefs_data: Optional[List[Dict]] = None) -> dict:
-        """
-        Convert RNAcentral API response to a dictionary.
-        :param rna_id: RNAcentral ID.
-        :param rna_data: API response data (dict or dict-like from search results).
-        :param xrefs_data: Optional list of xref entries fetched from xrefs endpoint.
-        :return: A dictionary containing RNA information.
-        """
+        """Convert RNAcentral API response to a dictionary."""
         sequence = rna_data.get("sequence", "")
+        extracted_info = RNACentralSearch._extract_info_from_xrefs(xrefs_data) if xrefs_data else {}
 
-        # Initialize extracted info from xrefs if available
-        extracted_info = {}
-        if xrefs_data:
-            extracted_info = RNACentralSearch._extract_info_from_xrefs(xrefs_data)
+        # Helper to get value with fallbacks
+        def _get_with_fallbacks(key, *fallback_keys):
+            if key in extracted_info and extracted_info[key]:
+                return extracted_info[key]
+            for fk in fallback_keys:
+                if value := rna_data.get(fk):
+                    return value
+            return None
 
-        # Extract organism information (prefer from xrefs, fallback to main data)
-        organism = extracted_info.get("organism")
-        if not organism:
-            organism = rna_data.get("organism", None)
-        if not organism:
-            organism = rna_data.get("species", None)
-
-        # Extract related genes (prefer from xrefs, fallback to main data)
+        # Extract related genes with special handling
         related_genes = extracted_info.get("related_genes")
         if not related_genes:
-            related_genes = rna_data.get("related_genes", [])
-        if not related_genes:
-            related_genes = rna_data.get("genes", [])
-        if not related_genes:
-            gene_name_temp = rna_data.get("gene_name", None)
-            if gene_name_temp:
-                related_genes = [gene_name_temp]
+            related_genes = rna_data.get("related_genes") or rna_data.get("genes", [])
+            if not related_genes:
+                if gene_name_temp := rna_data.get("gene_name"):
+                    related_genes = [gene_name_temp]
 
-        # Extract gene name (prefer from xrefs, fallback to main data)
-        gene_name = extracted_info.get("gene_name")
-        if not gene_name:
-            gene_name = rna_data.get("gene_name", None)
-        if not gene_name:
-            gene_name = rna_data.get("gene", None)
-
-        # Extract so_term (prefer from xrefs, fallback to main data)
-        so_term = extracted_info.get("so_term")
-        if not so_term:
-            so_term = rna_data.get("so_term", None)
-
-        # Extract modifications (prefer from xrefs, fallback to main data)
-        modifications = extracted_info.get("modifications")
-        if not modifications:
-            modifications = rna_data.get("modifications", None)
-
-        # Build result dictionary (xrefs information is already extracted into other fields)
-        # information is extracted into organism, gene_name, so_term, modifications, etc.
         return {
             "molecule_type": "RNA",
             "database": "RNAcentral",
@@ -207,11 +154,11 @@ class RNACentralSearch(BaseSearcher):
             "rna_type": rna_data.get("rna_type", "N/A"),
             "description": rna_data.get("description", "N/A"),
             "url": f"https://rnacentral.org/rna/{rna_id}",
-            "organism": organism,
+            "organism": _get_with_fallbacks("organism", "organism", "species"),
             "related_genes": related_genes if related_genes else None,
-            "gene_name": gene_name,
-            "so_term": so_term,
-            "modifications": modifications,
+            "gene_name": _get_with_fallbacks("gene_name", "gene_name", "gene"),
+            "so_term": _get_with_fallbacks("so_term", "so_term"),
+            "modifications": _get_with_fallbacks("modifications", "modifications"),
         }
 
     async def get_by_rna_id(self, rna_id: str) -> Optional[dict]:
@@ -253,48 +200,37 @@ class RNACentralSearch(BaseSearcher):
             return None
 
     async def get_best_hit(self, keyword: str) -> Optional[dict]:
-        """
-        Search RNAcentral with a keyword and return the best hit.
-        Unified approach: Find RNA ID from search, then call get_by_rna_id() for complete information.
-        :param keyword: The search keyword (e.g., miRNA name, RNA name).
-        :return: A dictionary containing complete RNA information or None if not found.
-        """
+        """Search RNAcentral with a keyword and return the best hit."""
         if not keyword.strip():
             return None
 
         try:
             async with aiohttp.ClientSession() as session:
-                search_url = f"{self.base_url}/rna"
-                params = {"search": keyword, "format": "json"}
                 async with session.get(
-                    search_url,
-                    params=params,
+                    f"{self.base_url}/rna",
+                    params={"search": keyword, "format": "json"},
                     headers=self.headers,
                     timeout=aiohttp.ClientTimeout(total=30),
                 ) as resp:
-                    if resp.status == 200:
-                        search_results = await resp.json()
-                        results = search_results.get("results", [])
-                        if results:
-                            # Step 1: Get RNA ID from search results
-                            first_result = results[0]
-                            rna_id = first_result.get("rnacentral_id")
+                    if resp.status != 200:
+                        error_text = await resp.text()
+                        logger.error("HTTP %d error for keyword %s: %s", resp.status, keyword, error_text[:200])
+                        raise Exception(f"HTTP {resp.status}: {error_text}")
 
-                            if rna_id:
-                                # Step 2: Unified call to get_by_rna_id() for complete information
-                                result = await self.get_by_rna_id(rna_id)
-
-                                # Step 3: If get_by_rna_id() failed, use search result data as fallback
-                                if not result:
-                                    logger.debug("get_by_rna_id() failed for %s, using search result data", rna_id)
-                                    result = self._rna_data_to_dict(rna_id, first_result)
-
-                                return result
+                    search_results = await resp.json()
+                    if not (results := search_results.get("results", [])):
                         logger.info("No results found for keyword: %s", keyword)
                         return None
-                    error_text = await resp.text()
-                    logger.error("HTTP %d error for keyword %s: %s", resp.status, keyword, error_text[:200])
-                    raise Exception(f"HTTP {resp.status}: {error_text}")
+
+                    first_result = results[0]
+                    if not (rna_id := first_result.get("rnacentral_id")):
+                        return None
+
+                    result = await self.get_by_rna_id(rna_id)
+                    if not result:
+                        logger.debug("get_by_rna_id() failed for %s, using search result data", rna_id)
+                        result = self._rna_data_to_dict(rna_id, first_result)
+                    return result
         except aiohttp.ClientError as e:
             logger.error("Network error searching for keyword %s: %s", keyword, e)
             return None
@@ -303,133 +239,77 @@ class RNACentralSearch(BaseSearcher):
             return None
 
     def _local_blast(self, seq: str, threshold: float) -> Optional[str]:
-        """
-        Perform local BLAST search using local BLAST database.
-        :param seq: The RNA sequence.
-        :param threshold: E-value threshold for BLAST search.
-        :return: The accession/ID of the best hit or None if not found.
-        """
+        """Perform local BLAST search using local BLAST database."""
         try:
-            with tempfile.NamedTemporaryFile(
-                mode="w+", suffix=".fa", delete=False
-            ) as tmp:
+            with tempfile.NamedTemporaryFile(mode="w+", suffix=".fa", delete=False) as tmp:
                 tmp.write(f">query\n{seq}\n")
                 tmp_name = tmp.name
 
             cmd = [
-                "blastn",
-                "-db",
-                self.local_blast_db,
-                "-query",
-                tmp_name,
-                "-evalue",
-                str(threshold),
-                "-max_target_seqs",
-                "1",
-                "-outfmt",
-                "6 sacc",  # only return accession
+                "blastn", "-db", self.local_blast_db, "-query", tmp_name,
+                "-evalue", str(threshold), "-max_target_seqs", "1", "-outfmt", "6 sacc"
             ]
             logger.debug("Running local blastn for RNA: %s", " ".join(cmd))
             out = subprocess.check_output(cmd, text=True).strip()
             os.remove(tmp_name)
-            if out:
-                return out.split("\n", maxsplit=1)[0]
-            return None
-        except Exception as exc:  # pylint: disable=broad-except
+            return out.split("\n", maxsplit=1)[0] if out else None
+        except Exception as exc:
             logger.error("Local blastn failed: %s", exc)
             return None
 
-    @staticmethod
-    def _extract_and_normalize_sequence(sequence: str) -> Optional[str]:
-        """Extract and normalize RNA sequence from input."""
-        if sequence.startswith(">"):
-            seq_lines = sequence.strip().split("\n")
-            seq = "".join(seq_lines[1:])
-        else:
-            seq = sequence.strip().replace(" ", "").replace("\n", "")
-        return seq if seq and re.fullmatch(r"[AUCGN\s]+", seq, re.I) else None
-
-    def _find_best_match_from_results(self, results: List[Dict], seq: str) -> Optional[Dict]:
-        """Find best match from search results, preferring exact match."""
-        exact_match = None
-        for result_item in results:
-            result_seq = result_item.get("sequence", "")
-            if result_seq == seq:
-                exact_match = result_item
-                break
-        return exact_match if exact_match else (results[0] if results else None)
-
-    async def _process_api_search_results(
-        self, results: List[Dict], seq: str
-    ) -> Optional[dict]:
-        """Process API search results and return dictionary or None."""
-        if not results:
-            logger.info("No results found for sequence.")
-            return None
-
-        target_result = self._find_best_match_from_results(results, seq)
-        if not target_result:
-            return None
-
-        rna_id = target_result.get("rnacentral_id")
-        if not rna_id:
-            return None
-
-        # Try to get complete information
-        result = await self.get_by_rna_id(rna_id)
-        if not result:
-            logger.debug("get_by_rna_id() failed for %s, using search result data", rna_id)
-            result = self._rna_data_to_dict(rna_id, target_result)
-        return result
-
     async def search_by_sequence(self, sequence: str, threshold: float = 0.01) -> Optional[dict]:
-        """
-        Search RNAcentral with an RNA sequence.
-        Tries local BLAST first if enabled, falls back to RNAcentral API.
-        Unified approach: Find RNA ID from sequence search, then call get_by_rna_id() for complete information.
-        :param sequence: RNA sequence (FASTA format or raw sequence).
-        :param threshold: E-value threshold for BLAST search.
-        :return: A dictionary containing complete RNA information or None if not found.
-        """
+        """Search RNAcentral with an RNA sequence using BLAST or API."""
+
+        def _extract_and_normalize_sequence(sequence: str) -> Optional[str]:
+            """Extract and normalize RNA sequence from input."""
+            if sequence.startswith(">"):
+                seq = "".join(sequence.strip().split("\n")[1:])
+            else:
+                seq = sequence.strip().replace(" ", "").replace("\n", "")
+            return seq if seq and re.fullmatch(r"[AUCGN\s]+", seq, re.I) else None
+
+        def _find_best_match(results: List[Dict], seq: str) -> Optional[Dict]:
+            """Find best match from search results, preferring exact match."""
+            for result_item in results:
+                if result_item.get("sequence", "") == seq:
+                    return result_item
+            return results[0] if results else None
+
         result = None
         try:
-            seq = self._extract_and_normalize_sequence(sequence)
-            if not seq:
+            if not (seq := _extract_and_normalize_sequence(sequence)):
                 logger.error("Empty or invalid RNA sequence provided.")
-                return None
-
-            # Try local BLAST first if enabled
-            if self.use_local_blast:
-                accession = self._local_blast(seq, threshold)
-                if accession:
-                    logger.debug("Local BLAST found accession: %s", accession)
-                    result = await self.get_by_rna_id(accession)
-                    if not result:
-                        result = await self.get_best_hit(accession)
-
-            # Fall back to RNAcentral API if local BLAST didn't find result
-            if not result:
-                logger.debug("Falling back to RNAcentral API.")
+            elif self.use_local_blast and (accession := self._local_blast(seq, threshold)):
+                logger.debug("Local BLAST found accession: %s", accession)
+                result = await self.get_by_rna_id(accession) or await self.get_best_hit(accession)
+            else:
+                # Fall back to RNAcentral API
+                logger.debug("Falling back to RNAcentral API")
                 async with aiohttp.ClientSession() as session:
-                    search_url = f"{self.base_url}/rna"
-                    params = {"sequence": seq, "format": "json"}
                     async with session.get(
-                        search_url,
-                        params=params,
+                        f"{self.base_url}/rna",
+                        params={"sequence": seq, "format": "json"},
                         headers=self.headers,
-                        timeout=aiohttp.ClientTimeout(total=60),  # Sequence search may take longer
+                        timeout=aiohttp.ClientTimeout(total=60),
                     ) as resp:
-                        if resp.status == 200:
-                            search_results = await resp.json()
-                            results = search_results.get("results", [])
-                            result = await self._process_api_search_results(results, seq)
-                        else:
+                        if resp.status != 200:
                             error_text = await resp.text()
                             logger.error("HTTP %d error for sequence search: %s", resp.status, error_text[:200])
                             raise Exception(f"HTTP {resp.status}: {error_text}")
+
+                        search_results = await resp.json()
+                        if results := search_results.get("results", []):
+                            target_result = _find_best_match(results, seq)
+                            if rna_id := target_result.get("rnacentral_id"):
+                                result = await self.get_by_rna_id(rna_id)
+                                if not result:
+                                    logger.debug("get_by_rna_id() failed for %s, using search result data", rna_id)
+                                    result = self._rna_data_to_dict(rna_id, target_result)
+                        else:
+                            logger.info("No results found for sequence.")
         except aiohttp.ClientError as e:
             logger.error("Network error searching for sequence: %s", e)
-        except Exception as e:  # pylint: disable=broad-except
+        except Exception as e:
             logger.error("Sequence search failed: %s", e)
         return result
 
@@ -439,35 +319,21 @@ class RNACentralSearch(BaseSearcher):
         retry=retry_if_exception_type((aiohttp.ClientError, asyncio.TimeoutError)),
         reraise=True,
     )
-    async def search(
-        self, query: str, threshold: float = 0.1, **kwargs
-    ) -> Optional[Dict]:
-        """
-        Search RNAcentral with either an RNAcentral ID, keyword, or RNA sequence.
-        :param query: The search query (RNAcentral ID, keyword, or RNA sequence).
-        :param threshold: E-value threshold for sequence search.
-        Note: RNAcentral API uses its own similarity matching, this parameter is for interface consistency.
-        :param kwargs: Additional keyword arguments (not used currently).
-        :return: A dictionary containing the search results or None if not found.
-        """
-        # auto detect query type
+    async def search(self, query: str, threshold: float = 0.1, **kwargs) -> Optional[Dict]:
+        """Search RNAcentral with either an RNAcentral ID, keyword, or RNA sequence."""
         if not query or not isinstance(query, str):
             logger.error("Empty or non-string input.")
             return None
-        query = query.strip()
 
+        query = query.strip()
         logger.debug("RNAcentral search query: %s", query)
 
-        # check if RNA sequence (AUCG characters, contains U)
-        if query.startswith(">") or (
-            re.fullmatch(r"[AUCGN\s]+", query, re.I) and "U" in query.upper()
-        ):
+        # Auto-detect query type
+        if query.startswith(">") or (re.fullmatch(r"[AUCGN\s]+", query, re.I) and "U" in query.upper()):
             result = await self.search_by_sequence(query, threshold)
-        # check if RNAcentral ID (typically starts with URS)
         elif re.fullmatch(r"URS\d+", query, re.I):
             result = await self.get_by_rna_id(query)
         else:
-            # otherwise treat as keyword
             result = await self.get_best_hit(query)
 
         if result:

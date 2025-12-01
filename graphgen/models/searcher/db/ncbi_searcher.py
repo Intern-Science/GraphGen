@@ -27,6 +27,10 @@ def _get_pool():
     return ThreadPoolExecutor(max_workers=10)
 
 
+# ensure only one NCBI request at a time
+_ncbi_lock = asyncio.Lock()
+
+
 class NCBISearch(BaseSearcher):
     """
     NCBI Search client to search DNA/GenBank/Entrez databases.
@@ -236,6 +240,7 @@ class NCBISearch(BaseSearcher):
                 return str(link.get("Id") if isinstance(link, dict) else link)
 
         try:
+            # TODO: support accession number with version number (e.g., NM_000546.3)
             with Entrez.elink(dbfrom="nuccore", db="gene", id=accession) as link_handle:
                 gene_id = _extract_gene_id(link_handle)
 
@@ -368,15 +373,17 @@ class NCBISearch(BaseSearcher):
 
         loop = asyncio.get_running_loop()
 
-        # Auto-detect query type and execute in thread pool
-        if query.startswith(">") or re.fullmatch(r"[ATCGN\s]+", query, re.I):
-            result = await loop.run_in_executor(_get_pool(), self.get_by_fasta, query, threshold)
-        elif re.fullmatch(r"^\d+$", query):
-            result = await loop.run_in_executor(_get_pool(), self.get_by_gene_id, query)
-        elif re.fullmatch(r"[A-Z]{2}_\d+\.?\d*", query, re.I):
-            result = await loop.run_in_executor(_get_pool(), self.get_by_accession, query)
-        else:
-            result = await loop.run_in_executor(_get_pool(), self.get_best_hit, query)
+        # limit concurrent requests (NCBI rate limit: max 3 requests per second)
+        async with _ncbi_lock:
+            # Auto-detect query type and execute in thread pool
+            if query.startswith(">") or re.fullmatch(r"[ATCGN\s]+", query, re.I):
+                result = await loop.run_in_executor(_get_pool(), self.get_by_fasta, query, threshold)
+            elif re.fullmatch(r"^\d+$", query):
+                result = await loop.run_in_executor(_get_pool(), self.get_by_gene_id, query)
+            elif re.fullmatch(r"[A-Z]{2}_\d+\.?\d*", query, re.I):
+                result = await loop.run_in_executor(_get_pool(), self.get_by_accession, query)
+            else:
+                result = await loop.run_in_executor(_get_pool(), self.get_best_hit, query)
 
         if result:
             result["_search_query"] = query

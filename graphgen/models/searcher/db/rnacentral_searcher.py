@@ -48,7 +48,7 @@ class RNACentralSearch(BaseSearcher):
     @staticmethod
     def _rna_data_to_dict(
         rna_id: str,
-        rna_data: Dict[str, Any], 
+        rna_data: Dict[str, Any],
         xrefs_data: Optional[List[Dict[str, Any]]] = None
     ) -> Dict[str, Any]:
         organisms, gene_names, so_terms = set(), set(), set()
@@ -151,7 +151,7 @@ class RNACentralSearch(BaseSearcher):
             url = f"{self.base_url}/rna/{rna_id}"
             url += "?flat=true"
 
-            resp = requests.get(url, headers=self.headers)
+            resp = requests.get(url, headers=self.headers, timeout=30)
             resp.raise_for_status()
 
             rna_data = resp.json()
@@ -178,7 +178,7 @@ class RNACentralSearch(BaseSearcher):
         try:
             url = f"{self.base_url}/rna"
             params = {"search": keyword, "format": "json"}
-            resp = requests.get(url, params=params, headers=self.headers)
+            resp = requests.get(url, params=params, headers=self.headers, timeout=30)
             resp.raise_for_status()
 
             data = resp.json()
@@ -262,7 +262,7 @@ class RNACentralSearch(BaseSearcher):
             search_url = f"{self.base_url}/rna"
             params = {"md5": md5_hash, "format": "json"}
 
-            resp = requests.get(search_url, params=params, headers=self.headers)
+            resp = requests.get(search_url, params=params, headers=self.headers, timeout=60)
             resp.raise_for_status()
 
             search_results = resp.json()

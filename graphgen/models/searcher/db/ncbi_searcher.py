@@ -76,8 +76,7 @@ class NCBISearch(BaseSearcher):
             data = data.get(key, default)
         return data
 
-    @staticmethod
-    def _gene_record_to_dict(gene_record, gene_id: str) -> dict:
+    def _gene_record_to_dict(self, gene_record, gene_id: str) -> dict:
         """
         Convert an Entrez gene record to a dictionary.
         All extraction logic is inlined for maximum clarity and performance.
@@ -89,8 +88,8 @@ class NCBISearch(BaseSearcher):
         locus = (data.get("Entrezgene_locus") or [{}])[0]
 
         # Extract common nested paths once
-        gene_ref = NCBISearch._nested_get(data, "Entrezgene_gene", "Gene-ref", default={})
-        biosource = NCBISearch._nested_get(data, "Entrezgene_source", "BioSource", default={})
+        gene_ref = self._nested_get(data, "Entrezgene_gene", "Gene-ref", default={})
+        biosource = self._nested_get(data, "Entrezgene_source", "BioSource", default={})
 
         # Process synonyms
         synonyms_raw = gene_ref.get("Gene-ref_syn", [])
@@ -105,7 +104,7 @@ class NCBISearch(BaseSearcher):
         label = locus.get("Gene-commentary_label", "")
         chromosome_match = re.search(r"Chromosome\s+(\S+)", str(label)) if label else None
 
-        seq_interval = NCBISearch._nested_get(
+        seq_interval = self._nested_get(
             locus, "Gene-commentary_seqs", 0, "Seq-loc_int", "Seq-interval", default={}
         )
         genomic_location = (
@@ -141,7 +140,7 @@ class NCBISearch(BaseSearcher):
             "id": gene_id,
             "gene_name": gene_ref.get("Gene-ref_locus", "N/A"),
             "gene_description": gene_ref.get("Gene-ref_desc", "N/A"),
-            "organism": NCBISearch._nested_get(
+            "organism": self._nested_get(
                 biosource, "BioSource_org", "Org-ref", "Org-ref_taxname", default="N/A"
             ),
             "url": f"https://www.ncbi.nlm.nih.gov/gene/{gene_id}",
@@ -199,7 +198,6 @@ class NCBISearch(BaseSearcher):
                     result["organism"] = record.annotations['organism']
 
             return result
-
 
         try:
             with Entrez.efetch(db="gene", id=gene_id, retmode="xml") as handle:
@@ -259,11 +257,11 @@ class NCBISearch(BaseSearcher):
             return None
 
         try:
-            for search_term in [f"{keyword}[Gene Name] OR {keyword}[All Fields]", keyword]:
-                with Entrez.esearch(db="gene", term=search_term, retmax=1) as search_handle:
-                    if search_results := Entrez.read(search_handle):
-                        if gene_id := search_results["IdList"][0]:
-                            return self.get_by_gene_id(gene_id)
+            for search_term in [f"{keyword}[Gene] OR {keyword}[All Fields]", keyword]:
+                with Entrez.esearch(db="gene", term=search_term, retmax=1, sort="relevance") as search_handle:
+                    search_results = Entrez.read(search_handle)
+                    if len(gene_id := search_results.get("IdList", [])) > 0:
+                        return self.get_by_gene_id(gene_id)
         except (RequestException, IncompleteRead):
             raise
         except Exception as e:
@@ -289,7 +287,7 @@ class NCBISearch(BaseSearcher):
             logger.error("Local blastn failed: %s", exc)
             return None
 
-    def search_by_sequence(self, sequence: str, threshold: float = 0.01) -> Optional[dict]:
+    def get_by_fasta(self, sequence: str, threshold: float = 0.01) -> Optional[dict]:
         """Search NCBI with a DNA sequence using BLAST."""
 
         def _extract_and_normalize_sequence(sequence: str) -> Optional[str]:
@@ -369,7 +367,7 @@ class NCBISearch(BaseSearcher):
 
         # Auto-detect query type and execute in thread pool
         if query.startswith(">") or re.fullmatch(r"[ATCGN\s]+", query, re.I):
-            result = await loop.run_in_executor(_get_pool(), self.search_by_sequence, query, threshold)
+            result = await loop.run_in_executor(_get_pool(), self.get_by_fasta, query, threshold)
         elif re.fullmatch(r"^\d+$", query):
             result = await loop.run_in_executor(_get_pool(), self.get_by_gene_id, query)
         elif re.fullmatch(r"[A-Z]{2}_\d+\.?\d*", query, re.I):

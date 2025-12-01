@@ -128,6 +128,7 @@ class RNACentralSearch(BaseSearcher):
             related_genes = [single_gene]
 
         sequence = rna_data.get("sequence", "")
+        extracted_info = RNACentralSearch._extract_info_from_xrefs(xrefs_data) if xrefs_data else {}
 
         return {
             "molecule_type": "RNA",
@@ -229,39 +230,21 @@ class RNACentralSearch(BaseSearcher):
             return None
 
     def _local_blast(self, seq: str, threshold: float) -> Optional[str]:
-        """
-        Perform local BLAST search using local BLAST database.
-        :param seq: The RNA sequence.
-        :param threshold: E-value threshold for BLAST search.
-        :return: The accession/ID of the best hit or None if not found.
-        """
+        """Perform local BLAST search using local BLAST database."""
         try:
-            with tempfile.NamedTemporaryFile(
-                mode="w+", suffix=".fa", delete=False
-            ) as tmp:
+            with tempfile.NamedTemporaryFile(mode="w+", suffix=".fa", delete=False) as tmp:
                 tmp.write(f">query\n{seq}\n")
                 tmp_name = tmp.name
 
             cmd = [
-                "blastn",
-                "-db",
-                self.local_blast_db,
-                "-query",
-                tmp_name,
-                "-evalue",
-                str(threshold),
-                "-max_target_seqs",
-                "1",
-                "-outfmt",
-                "6 sacc",  # only return accession
+                "blastn", "-db", self.local_blast_db, "-query", tmp_name,
+                "-evalue", str(threshold), "-max_target_seqs", "1", "-outfmt", "6 sacc"
             ]
             logger.debug("Running local blastn for RNA: %s", " ".join(cmd))
             out = subprocess.check_output(cmd, text=True).strip()
             os.remove(tmp_name)
-            if out:
-                return out.split("\n", maxsplit=1)[0]
-            return None
-        except Exception as exc:  # pylint: disable=broad-except
+            return out.split("\n", maxsplit=1)[0] if out else None
+        except Exception as exc:
             logger.error("Local blastn failed: %s", exc)
             return None
 
@@ -355,23 +338,13 @@ class RNACentralSearch(BaseSearcher):
         retry=retry_if_exception_type((aiohttp.ClientError, asyncio.TimeoutError)),
         reraise=True,
     )
-    async def search(
-        self, query: str, threshold: float = 0.1, **kwargs
-    ) -> Optional[Dict]:
-        """
-        Search RNAcentral with either an RNAcentral ID, keyword, or RNA sequence.
-        :param query: The search query (RNAcentral ID, keyword, or RNA sequence).
-        :param threshold: E-value threshold for sequence search.
-        Note: RNAcentral API uses its own similarity matching, this parameter is for interface consistency.
-        :param kwargs: Additional keyword arguments (not used currently).
-        :return: A dictionary containing the search results or None if not found.
-        """
-        # auto detect query type
+    async def search(self, query: str, threshold: float = 0.1, **kwargs) -> Optional[Dict]:
+        """Search RNAcentral with either an RNAcentral ID, keyword, or RNA sequence."""
         if not query or not isinstance(query, str):
             logger.error("Empty or non-string input.")
             return None
-        query = query.strip()
 
+        query = query.strip()
         logger.debug("RNAcentral search query: %s", query)
 
         loop = asyncio.get_running_loop()

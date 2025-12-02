@@ -16,7 +16,6 @@
 
 [![Hugging Face](https://img.shields.io/badge/Demo-on%20HF-blue?logo=huggingface&logoColor=yellow)](https://huggingface.co/spaces/chenzihong/GraphGen)
 [![Model Scope](https://img.shields.io/badge/%F0%9F%A4%96%20Demo-on%20MS-green)](https://modelscope.cn/studios/chenzihong/GraphGen)
-[![OpenXLab](https://img.shields.io/badge/Demo-on%20OpenXLab-blue?logo=openxlab&logoColor=yellow)](https://g-app-center-120612-6433-jpdvmvp.openxlab.space)
 
 
 GraphGen: Enhancing Supervised Fine-Tuning for LLMs with Knowledge-Driven Synthetic Data Generation
@@ -63,13 +62,14 @@ After data generation, you can use [LLaMA-Factory](https://github.com/hiyouga/LL
 
 ## 📌 Latest Updates
 
+- **2025.12.1**: Added search support for [NCBI](https://www.ncbi.nlm.nih.gov/) and [RNAcentral](https://rnacentral.org/) databases, enabling extraction of DNA and RNA data from these bioinformatics databases.
 - **2025.10.30**: We support several new LLM clients and inference backends including [Ollama_client](https://github.com/open-sciencelab/GraphGen/blob/main/graphgen/models/llm/api/ollama_client.py), [http_client](https://github.com/open-sciencelab/GraphGen/blob/main/graphgen/models/llm/api/http_client.py), [HuggingFace Transformers](https://github.com/open-sciencelab/GraphGen/blob/main/graphgen/models/llm/local/hf_wrapper.py) and [SGLang](https://github.com/open-sciencelab/GraphGen/blob/main/graphgen/models/llm/local/sglang_wrapper.py).
 - **2025.10.23**: We support VQA(Visual Question Answering) data generation now. Run script: `bash scripts/generate/generate_vqa.sh`.
-- **2025.10.21**: We support PDF as input format for data generation now via [MinerU](https://github.com/opendatalab/MinerU).
 
 <details>
 <summary>History</summary>
 
+- **2025.10.21**: We support PDF as input format for data generation now via [MinerU](https://github.com/opendatalab/MinerU).
 - **2025.09.29**: We auto-update gradio demo on [Hugging Face](https://huggingface.co/spaces/chenzihong/GraphGen) and [ModelScope](https://modelscope.cn/studios/chenzihong/GraphGen).
 - **2025.08.14**: We have added support for community detection in knowledge graphs using the Leiden algorithm, enabling the synthesis of Chain-of-Thought (CoT) data.
 - **2025.07.31**: We have added Google, Bing, Wikipedia, and UniProt as search back-ends.
@@ -83,9 +83,10 @@ After data generation, you can use [LLaMA-Factory](https://github.com/hiyouga/LL
 We support various LLM inference servers, API servers, inference clients, input file formats, data modalities, output data formats, and output data types.
 Users can flexibly configure according to the needs of synthetic data.
 
-| Inference Server                             | Api Server                                                                     | Inference Client                                           | Input File Format                  | Data Modal    | Data Format                  | Data Type                                       |
-|----------------------------------------------|--------------------------------------------------------------------------------|------------------------------------------------------------|------------------------------------|---------------|------------------------------|-------------------------------------------------|
-| [![hf-icon]HF][hf]<br>[![sg-icon]SGLang][sg] | [![sif-icon]Silicon][sif]<br>[![oai-icon]OpenAI][oai]<br>[![az-icon]Azure][az] | HTTP<br>[![ol-icon]Ollama][ol]<br>[![oai-icon]OpenAI][oai] | CSV<br>JSON<br>JSONL<br>PDF<br>TXT | TEXT<br>IMAGE | Alpaca<br>ChatML<br>Sharegpt | Aggregated<br>Atomic<br>CoT<br>Multi-hop<br>VQA |
+
+| Inference Server                             | Api Server                                                                     | Inference Client                                           | Data Source                                                                                                                                                                                                                                                                           | Data Modal    | Data Type                                       |
+|----------------------------------------------|--------------------------------------------------------------------------------|------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------|-------------------------------------------------|
+| [![hf-icon]HF][hf]<br>[![sg-icon]SGLang][sg] | [![sif-icon]Silicon][sif]<br>[![oai-icon]OpenAI][oai]<br>[![az-icon]Azure][az] | HTTP<br>[![ol-icon]Ollama][ol]<br>[![oai-icon]OpenAI][oai] | Files(CSV, JSON, PDF, TXT, etc.)<br>Databases([![uniprot-icon]UniProt][uniprot], [![ncbi-icon]NCBI][ncbi], [![rnacentral-icon]RNAcentral][rnacentral])<br>Search Engines([![bing-icon]Bing][bing], [![google-icon]Google][google])<br>Knowledge Graphs([![wiki-icon]Wikipedia][wiki]) | TEXT<br>IMAGE | Aggregated<br>Atomic<br>CoT<br>Multi-hop<br>VQA |
 
 <!-- links -->
 [hf]: https://huggingface.co/docs/transformers/index
@@ -94,6 +95,13 @@ Users can flexibly configure according to the needs of synthetic data.
 [oai]: https://openai.com
 [az]: https://azure.microsoft.com/en-us/services/cognitive-services/openai-service/
 [ol]: https://ollama.com
+[uniprot]: https://www.uniprot.org/
+[ncbi]: https://www.ncbi.nlm.nih.gov/
+[rnacentral]: https://rnacentral.org/
+[wiki]: https://www.wikipedia.org/
+[bing]: https://www.bing.com/
+[google]: https://www.google.com
+
 
 <!-- icons -->
 [hf-icon]: https://www.google.com/s2/favicons?domain=https://huggingface.co
@@ -103,11 +111,17 @@ Users can flexibly configure according to the needs of synthetic data.
 [az-icon]: https://www.google.com/s2/favicons?domain=https://azure.microsoft.com
 [ol-icon]: https://www.google.com/s2/favicons?domain=https://ollama.com
 
+[uniprot-icon]: https://www.google.com/s2/favicons?domain=https://www.uniprot.org
+[ncbi-icon]: https://www.google.com/s2/favicons?domain=https://www.ncbi.nlm.nih.gov/
+[rnacentral-icon]: https://www.google.com/s2/favicons?domain=https://rnacentral.org/
+[wiki-icon]: https://www.google.com/s2/favicons?domain=https://www.wikipedia.org/
+[bing-icon]: https://www.google.com/s2/favicons?domain=https://www.bing.com/
+[google-icon]: https://www.google.com/s2/favicons?domain=https://www.google.com
 
 
 ## 🚀 Quick Start
 
-Experience GraphGen through [Web](https://g-app-center-120612-6433-jpdvmvp.openxlab.space) or [Backup Web Entrance](https://openxlab.org.cn/apps/detail/chenzihonga/GraphGen)
+Experience GraphGen Demo through [Huggingface](https://huggingface.co/spaces/chenzihong/GraphGen) or [Modelscope](https://modelscope.cn/studios/chenzihong/GraphGen).
 
 For any questions, please check [FAQ](https://github.com/open-sciencelab/GraphGen/issues/10), open new [issue](https://github.com/open-sciencelab/GraphGen/issues) or join our [wechat group](https://cdn.vansin.top/internlm/dou.jpg) and ask.
 
@@ -263,4 +277,4 @@ This project is licensed under the [Apache License 2.0](LICENSE).
 
 ## 📅 Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=open-sciencelab/GraphGen&type=Date)](https://www.star-history.com/#open-sciencelab/GraphGen&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=Intern-Science/GraphGen&type=Date)](https://www.star-history.com/#open-sciencelab/GraphGen&Date)

@@ -120,7 +120,7 @@ if __name__ == "__main__":
     load_dotenv()
 
     llm_client = OpenAIClient(
-        model_name=os.getenv("SYNTHESIZER_MODEL"),
+        model=os.getenv("SYNTHESIZER_MODEL"),
         api_key=os.getenv("SYNTHESIZER_API_KEY"),
         base_url=os.getenv("SYNTHESIZER_BASE_URL"),
     )

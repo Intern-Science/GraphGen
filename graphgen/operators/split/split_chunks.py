@@ -31,16 +31,18 @@ def split_chunks(text: str, language: str = "en", **kwargs) -> list:
             f"Unsupported language: {language}. "
             f"Supported languages are: {list(_MAPPING.keys())}"
         )
-    splitter = _get_splitter(language, frozenset(kwargs.items()))
+    frozen_kwargs = frozenset(
+        (k, tuple(v) if isinstance(v, list) else v) for k, v in kwargs.items()
+    )
+    splitter = _get_splitter(language, frozen_kwargs)
     return splitter.split_text(text)
 
 
 async def chunk_documents(
     new_docs: dict,
-    chunk_size: int = 1024,
-    chunk_overlap: int = 100,
     tokenizer_instance: Tokenizer = None,
     progress_bar=None,
+    **kwargs,
 ) -> dict:
     inserting_chunks = {}
     cur_index = 1
@@ -51,18 +53,18 @@ async def chunk_documents(
         doc_type = doc.get("type")
         if doc_type == "text":
             doc_language = detect_main_language(doc["content"])
+
             text_chunks = split_chunks(
                 doc["content"],
                 language=doc_language,
-                chunk_size=chunk_size,
-                chunk_overlap=chunk_overlap,
+                **kwargs,
             )
 
             chunks = {
                 compute_content_hash(txt, prefix="chunk-"): {
                     "content": txt,
                     "type": "text",
-                    "full_doc_id": doc_key,
+                    "_full_docs_id": doc_key,
                     "length": len(tokenizer_instance.encode(txt))
                     if tokenizer_instance
                     else len(txt),

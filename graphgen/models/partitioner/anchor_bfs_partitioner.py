@@ -36,8 +36,8 @@ class AnchorBFSPartitioner(BFSPartitioner):
         max_units_per_community: int = 1,
         **kwargs: Any,
     ) -> List[Community]:
-        nodes = await g.get_all_nodes()  # List[tuple[id, meta]]
-        edges = await g.get_all_edges()  # List[tuple[u, v, meta]]
+        nodes = g.get_all_nodes()  # List[tuple[id, meta]]
+        edges = g.get_all_edges()  # List[tuple[u, v, meta]]
 
         adj, _ = self._build_adjacency_list(nodes, edges)
 

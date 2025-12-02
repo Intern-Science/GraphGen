@@ -12,12 +12,8 @@ class LLMFactory:
     - http_api: HTTPClient
     - openai_api: OpenAIClient
     - ollama_api: OllamaClient
-    - ollama: OllamaWrapper
-    - deepspeed: DeepSpeedWrapper
     - huggingface: HuggingFaceWrapper
-    - tgi: TGIWrapper
     - sglang: SGLangWrapper
-    - tensorrt: TensorRTWrapper
     """
 
     @staticmethod
@@ -31,10 +27,11 @@ class LLMFactory:
             from graphgen.models.llm.api.http_client import HTTPClient
 
             return HTTPClient(**config)
-        if backend == "openai_api":
+        if backend in ("openai_api", "azure_openai_api"):
             from graphgen.models.llm.api.openai_client import OpenAIClient
-
-            return OpenAIClient(**config)
+            # pass in concrete backend to the OpenAIClient so that internally we can distinguish
+            # between OpenAI and Azure OpenAI
+            return OpenAIClient(**config, backend=backend)
         if backend == "ollama_api":
             from graphgen.models.llm.api.ollama_client import OllamaClient
 
@@ -43,15 +40,15 @@ class LLMFactory:
             from graphgen.models.llm.local.hf_wrapper import HuggingFaceWrapper
 
             return HuggingFaceWrapper(**config)
-        # if backend == "sglang":
-        #     from graphgen.models.llm.local.sglang_wrapper import SGLangWrapper
+        if backend == "sglang":
+            from graphgen.models.llm.local.sglang_wrapper import SGLangWrapper
+
+            return SGLangWrapper(**config)
+
+        # if backend == "vllm":
+        #     from graphgen.models.llm.local.vllm_wrapper import VLLMWrapper
         #
-        #     return SGLangWrapper(**config)
-
-        if backend == "vllm":
-            from graphgen.models.llm.local.vllm_wrapper import VLLMWrapper
-
-            return VLLMWrapper(**config)
+        #     return VLLMWrapper(**config)
 
         raise NotImplementedError(f"Backend {backend} is not implemented yet.")
 

@@ -61,11 +61,17 @@ class BaseLLMWrapper(abc.ABC):
     def filter_think_tags(text: str, think_tag: str = "think") -> str:
         """
         Remove <think> tags from the text.
-        If the text contains <think> and </think>, it removes everything between them and the tags themselves.
+        - If the text contains <think> and </think>, it removes everything between them and the tags themselves.
+        - If the text contains only </think>, it removes content before the tag.
         """
-        think_pattern = re.compile(rf"<{think_tag}>.*?</{think_tag}>", re.DOTALL)
-        filtered_text = think_pattern.sub("", text).strip()
-        return filtered_text if filtered_text else text.strip()
+        paired_pattern = re.compile(rf"<{think_tag}>.*?</{think_tag}>", re.DOTALL)
+        filtered = paired_pattern.sub("", text)
+
+        orphan_pattern = re.compile(rf"^.*?</{think_tag}>", re.DOTALL)
+        filtered = orphan_pattern.sub("", filtered)
+
+        filtered = filtered.strip()
+        return filtered if filtered else text.strip()
 
     def shutdown(self) -> None:
         """Shutdown the LLM engine if applicable."""

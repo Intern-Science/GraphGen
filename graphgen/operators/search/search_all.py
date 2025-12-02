@@ -1,82 +1,83 @@
 """
 To use Google Web Search API,
 follow the instructions [here](https://developers.google.com/custom-search/v1/overview)
-to get your Google search api key.
+to get your Google searcher api key.
 
 To use Bing Web Search API,
 follow the instructions [here](https://www.microsoft.com/en-us/bing/apis/bing-web-search-api)
 and obtain your Bing subscription key.
 """
 
-import os
 
-from graphgen.utils import logger
+from graphgen.utils import logger, run_concurrent
 
 
 async def search_all(
-    search_types: dict, search_entities: set[str]
-) -> dict[str, dict[str, str]]:
+    seed_data: dict,
+    search_config: dict,
+) -> dict:
     """
-    :param search_types
-    :param search_entities: list of entities to search
-    :return: nodes with search results
+    Perform searches across multiple search types and aggregate the results.
+    :param seed_data: A dictionary containing seed data with entity names.
+    :param search_config: A dictionary specifying which data sources to use for searching.
+    :return: A dictionary with
     """
 
     results = {}
+    data_sources = search_config.get("data_sources", [])
 
-    for search_type in search_types:
-        if search_type == "wikipedia":
-            from graphgen.models import WikiSearch
-            from graphgen.operators.search.kg.search_wikipedia import search_wikipedia
+    for data_source in data_sources:
+        data = list(seed_data.values())
+        data = [d["content"] for d in data if "content" in d]
+        data = list(set(data))  # Remove duplicates
 
-            wiki_search_client = WikiSearch()
+        if data_source == "uniprot":
+            from graphgen.models import UniProtSearch
 
-            wiki_results = await search_wikipedia(wiki_search_client, search_entities)
-            for entity_name, description in wiki_results.items():
-                if description:
-                    results[entity_name] = {"wikipedia": description}
-        elif search_type == "google":
-            from graphgen.models import GoogleSearch
-            from graphgen.operators.search.web.search_google import search_google
-
-            google_search_client = GoogleSearch(
-                subscription_key=os.environ["GOOGLE_SEARCH_API_KEY"],
-                cx=os.environ["GOOGLE_SEARCH_CX"],
+            uniprot_search_client = UniProtSearch(
+                **search_config.get("uniprot_params", {})
             )
 
-            google_results = await search_google(google_search_client, search_entities)
-            for entity_name, description in google_results.items():
-                if description:
-                    results[entity_name] = results.get(entity_name, {})
-                    results[entity_name]["google"] = description
-        elif search_type == "bing":
-            from graphgen.models import BingSearch
-            from graphgen.operators.search.web.search_bing import search_bing
+            uniprot_results = await run_concurrent(
+                uniprot_search_client.search,
+                data,
+                desc="Searching UniProt database",
+                unit="keyword",
+            )
+            results[data_source] = uniprot_results
 
-            bing_search_client = BingSearch(
-                subscription_key=os.environ["BING_SEARCH_API_KEY"]
+        elif data_source == "ncbi":
+            from graphgen.models import NCBISearch
+
+            ncbi_search_client = NCBISearch(
+                **search_config.get("ncbi_params", {})
             )
 
-            bing_results = await search_bing(bing_search_client, search_entities)
-            for entity_name, description in bing_results.items():
-                if description:
-                    results[entity_name] = results.get(entity_name, {})
-                    results[entity_name]["bing"] = description
-        elif search_type == "uniprot":
-            # from graphgen.models import UniProtSearch
-            # from graphgen.operators.search.db.search_uniprot import search_uniprot
-            #
-            # uniprot_search_client = UniProtSearch()
-            #
-            # uniprot_results = await search_uniprot(
-            #     uniprot_search_client, search_entities
-            # )
-            raise NotImplementedError(
-                "Processing of UniProt search results is not implemented yet."
+            ncbi_results = await run_concurrent(
+                ncbi_search_client.search,
+                data,
+                desc="Searching NCBI database",
+                unit="keyword",
             )
+            results[data_source] = ncbi_results
+
+        elif data_source == "rnacentral":
+            from graphgen.models import RNACentralSearch
+
+            rnacentral_search_client = RNACentralSearch(
+                **search_config.get("rnacentral_params", {})
+            )
+
+            rnacentral_results = await run_concurrent(
+                rnacentral_search_client.search,
+                data,
+                desc="Searching RNAcentral database",
+                unit="keyword",
+            )
+            results[data_source] = rnacentral_results
 
         else:
-            logger.error("Search type %s is not supported yet.", search_type)
+            logger.error("Data source %s not supported.", data_source)
             continue
 
     return results

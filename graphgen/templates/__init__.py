@@ -1,5 +1,6 @@
 from .coreference_resolution import COREFERENCE_RESOLUTION_PROMPT
 from .description_rephrasing import DESCRIPTION_REPHRASING_PROMPT
+from .extraction import SCHEMA_GUIDED_EXTRACTION_PROMPT
 from .generation import (
     AGGREGATED_GENERATION_PROMPT,
     ATOMIC_GENERATION_PROMPT,

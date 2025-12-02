@@ -39,16 +39,16 @@ class BasePartitioner(ABC):
             edges = comm.edges
             nodes_data = []
             for node in nodes:
-                node_data = await g.get_node(node)
+                node_data = g.get_node(node)
                 if node_data:
                     nodes_data.append((node, node_data))
             edges_data = []
             for u, v in edges:
-                edge_data = await g.get_edge(u, v)
+                edge_data = g.get_edge(u, v)
                 if edge_data:
                     edges_data.append((u, v, edge_data))
                 else:
-                    edge_data = await g.get_edge(v, u)
+                    edge_data = g.get_edge(v, u)
                     if edge_data:
                         edges_data.append((v, u, edge_data))
             batches.append((nodes_data, edges_data))

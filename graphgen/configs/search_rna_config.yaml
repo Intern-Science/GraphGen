@@ -1,0 +1,16 @@
+pipeline:
+  - name: read_step
+    op_key: read
+    params:
+      input_file:  resources/input_examples/search_rna_demo.jsonl # input file path, support json, jsonl, txt, pdf. See resources/input_examples for examples
+
+  - name: search_step
+    op_key: search
+    deps: [read_step] # search_step depends on read_step
+    params:
+      data_sources: [rnacentral] # data source for searcher, support: wikipedia, google, uniprot, ncbi, rnacentral
+      rnacentral_params:
+        use_local_blast: true # whether to use local blast for RNA search
+        local_blast_db: /your_path/refseq_rna_241 # format: /path/to/refseq_rna_${RELEASE}
+        # can also use DNA database with RNA sequences (if already built)
+

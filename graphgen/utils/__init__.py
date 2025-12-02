@@ -9,7 +9,12 @@ from .format import (
     split_string_by_multi_markers,
     write_json,
 )
-from .hash import compute_args_hash, compute_content_hash, compute_mm_hash
+from .hash import (
+    compute_args_hash,
+    compute_content_hash,
+    compute_dict_hash,
+    compute_mm_hash,
+)
 from .help_nltk import NLTKHelper
 from .log import logger, parse_log, set_logger
 from .loop import create_event_loop

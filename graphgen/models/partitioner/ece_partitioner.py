@@ -60,8 +60,8 @@ class ECEPartitioner(BFSPartitioner):
         unit_sampling: str = "random",
         **kwargs: Any,
     ) -> List[Community]:
-        nodes: List[Tuple[str, dict]] = await g.get_all_nodes()
-        edges: List[Tuple[str, str, dict]] = await g.get_all_edges()
+        nodes: List[Tuple[str, dict]] = g.get_all_nodes()
+        edges: List[Tuple[str, str, dict]] = g.get_all_edges()
 
         adj, _ = self._build_adjacency_list(nodes, edges)
         node_dict = dict(nodes)

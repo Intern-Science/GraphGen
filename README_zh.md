@@ -16,7 +16,6 @@
 
 [![Hugging Face](https://img.shields.io/badge/Demo-on%20HF-blue?logo=huggingface&logoColor=yellow)](https://huggingface.co/spaces/chenzihong/GraphGen)
 [![Model Scope](https://img.shields.io/badge/%F0%9F%A4%96%20Demo-on%20MS-green)](https://modelscope.cn/studios/chenzihong/GraphGen)
-[![OpenXLab](https://img.shields.io/badge/Demo-on%20OpenXLab-blue?logo=openxlab&logoColor=yellow)](https://g-app-center-120612-6433-jpdvmvp.openxlab.space)
 
 GraphGen: Enhancing Supervised Fine-Tuning for LLMs with Knowledge-Driven Synthetic Data Generation
 
@@ -63,13 +62,14 @@ GraphGen 首先根据源文本构建细粒度的知识图谱，然后利用期�
 在数据生成后，您可以使用[LLaMA-Factory](https://github.com/hiyouga/LLaMA-Factory) 和 [xtuner](https://github.com/InternLM/xtuner)对大语言模型进行微调。
 
 ## 📌 最新更新
-- **2025.10.30** 我们支持多种新的 LLM 客户端和推理后端，包括 [Ollama_client]([Ollama_client](https://github.com/open-sciencelab/GraphGen/blob/main/graphgen/models/llm/api/ollama_client.py), [http_client](https://github.com/open-sciencelab/GraphGen/blob/main/graphgen/models/llm/api/http_client.py), [HuggingFace Transformers](https://github.com/open-sciencelab/GraphGen/blob/main/graphgen/models/llm/local/hf_wrapper.py) 和 [SGLang](https://github.com/open-sciencelab/GraphGen/blob/main/graphgen/models/llm/local/sglang_wrapper.py).
+- **2025.12.1**：新增对 [NCBI](https://www.ncbi.nlm.nih.gov/) 和 [RNAcentral](https://rnacentral.org/) 数据库的检索支持，现在可以从这些生物信息学数据库中提取DNA和RNA数据。
+- **2025.10.30**：我们支持多种新的 LLM 客户端和推理后端，包括 [Ollama_client]([Ollama_client](https://github.com/open-sciencelab/GraphGen/blob/main/graphgen/models/llm/api/ollama_client.py), [http_client](https://github.com/open-sciencelab/GraphGen/blob/main/graphgen/models/llm/api/http_client.py), [HuggingFace Transformers](https://github.com/open-sciencelab/GraphGen/blob/main/graphgen/models/llm/local/hf_wrapper.py) 和 [SGLang](https://github.com/open-sciencelab/GraphGen/blob/main/graphgen/models/llm/local/sglang_wrapper.py)。
 - **2025.10.23**：我们现在支持视觉问答（VQA）数据生成。运行脚本：`bash scripts/generate/generate_vqa.sh`。
-- **2025.10.21**：我们现在通过 [MinerU](https://github.com/opendatalab/MinerU) 支持 PDF 作为数据生成的输入格式。
 
 <details>
 <summary>历史更新</summary>
 
+- **2025.10.21**：我们现在通过 [MinerU](https://github.com/opendatalab/MinerU) 支持 PDF 作为数据生成的输入格式。
 - **2025.09.29**：我们在 [Hugging Face](https://huggingface.co/spaces/chenzihong/GraphGen) 和 [ModelScope](https://modelscope.cn/studios/chenzihong/GraphGen) 上自动更新 Gradio 应用。
 - **2025.08.14**：支持利用 Leiden 社区发现算法对知识图谱进行社区划分，合成 CoT 数据。
 - **2025.07.31**：新增 Google、Bing、Wikipedia 和 UniProt 作为搜索后端，帮助填补数据缺口。  
@@ -82,9 +82,9 @@ GraphGen 首先根据源文本构建细粒度的知识图谱，然后利用期�
 我们支持多种 LLM 推理服务器、API 服务器、推理客户端、输入文件格式、数据模态、输出数据格式和输出数据类型。
 可以根据合成数据的需求进行灵活配置。
 
-| 推理服务器                                        | API 服务器                                                                        | 推理客户端                                                      | 输入文件格式                             | 数据模态         | 输出数据格式                       | 输出数据类型                                          |
-|----------------------------------------------|--------------------------------------------------------------------------------|------------------------------------------------------------|------------------------------------|--------------|------------------------------|-------------------------------------------------|
-| [![hf-icon]HF][hf]<br>[![sg-icon]SGLang][sg] | [![sif-icon]Silicon][sif]<br>[![oai-icon]OpenAI][oai]<br>[![az-icon]Azure][az] | HTTP<br>[![ol-icon]Ollama][ol]<br>[![oai-icon]OpenAI][oai] | CSV<br>JSON<br>JSONL<br>PDF<br>TXT | TEXT<br>TEXT | Alpaca<br>ChatML<br>Sharegpt | Aggregated<br>Atomic<br>CoT<br>Multi-hop<br>VQA |
+| 推理服务器                                        | API 服务器                                                                        | 推理客户端                                                      | 输入文件格式                                                                                                                                                                                                                                                   | 数据模态          | 输出数据类型                                          |
+|----------------------------------------------|--------------------------------------------------------------------------------|------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------|-------------------------------------------------|
+| [![hf-icon]HF][hf]<br>[![sg-icon]SGLang][sg] | [![sif-icon]Silicon][sif]<br>[![oai-icon]OpenAI][oai]<br>[![az-icon]Azure][az] | HTTP<br>[![ol-icon]Ollama][ol]<br>[![oai-icon]OpenAI][oai] | 文件(CSV, JSON, JSONL, PDF, TXT等)<br>数据库([![uniprot-icon]UniProt][uniprot], [![ncbi-icon]NCBI][ncbi], [![rnacentral-icon]RNAcentral][rnacentral])<br>搜索引擎([![bing-icon]Bing][bing], [![google-icon]Google][google])<br>知识图谱([![wiki-icon]Wikipedia][wiki]) | TEXT<br>IMAGE | Aggregated<br>Atomic<br>CoT<br>Multi-hop<br>VQA |
 
 <!-- links -->
 [hf]: https://huggingface.co/docs/transformers/index
@@ -93,6 +93,13 @@ GraphGen 首先根据源文本构建细粒度的知识图谱，然后利用期�
 [oai]: https://openai.com
 [az]: https://azure.microsoft.com/en-us/services/cognitive-services/openai-service/
 [ol]: https://ollama.com
+[uniprot]: https://www.uniprot.org/
+[ncbi]: https://www.ncbi.nlm.nih.gov/
+[rnacentral]: https://rnacentral.org/
+[wiki]: https://www.wikipedia.org/
+[bing]: https://www.bing.com/
+[google]: https://www.google.com
+
 
 <!-- icons -->
 [hf-icon]: https://www.google.com/s2/favicons?domain=https://huggingface.co
@@ -102,10 +109,17 @@ GraphGen 首先根据源文本构建细粒度的知识图谱，然后利用期�
 [az-icon]: https://www.google.com/s2/favicons?domain=https://azure.microsoft.com
 [ol-icon]: https://www.google.com/s2/favicons?domain=https://ollama.com
 
+[uniprot-icon]: https://www.google.com/s2/favicons?domain=https://www.uniprot.org
+[ncbi-icon]: https://www.google.com/s2/favicons?domain=https://www.ncbi.nlm.nih.gov/
+[rnacentral-icon]: https://www.google.com/s2/favicons?domain=https://rnacentral.org/
+[wiki-icon]: https://www.google.com/s2/favicons?domain=https://www.wikipedia.org/
+[bing-icon]: https://www.google.com/s2/favicons?domain=https://www.bing.com/
+[google-icon]: https://www.google.com/s2/favicons?domain=https://www.google.com
+
 
 ## 🚀 快速开始
 
-通过 [Web](https://g-app-center-120612-6433-jpdvmvp.openxlab.space) 或 [备用 Web 入口](https://openxlab.org.cn/apps/detail/chenzihonga/GraphGen) 体验 GraphGen。
+通过 [Huggingface](https://huggingface.co/spaces/chenzihong/GraphGen) 或 [Modelscope](https://modelscope.cn/studios/chenzihong/GraphGen) 体验 GraphGen。
 
 如有任何问题，请查看 [FAQ](https://github.com/open-sciencelab/GraphGen/issues/10)、提交新的 [issue](https://github.com/open-sciencelab/GraphGen/issues) 或加入我们的[微信群](https://cdn.vansin.top/internlm/dou.jpg)咨询。
 
@@ -259,5 +273,5 @@ GraphGen 首先根据源文本构建细粒度的知识图谱，然后利用期�
 
 ## 📅 星标历史
 
-[![Star History Chart](https://api.star-history.com/svg?repos=open-sciencelab/GraphGen&type=Date)](https://www.star-history.com/#open-sciencelab/GraphGen&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=Intern-Science/GraphGen&type=Date)](https://www.star-history.com/#open-sciencelab/GraphGen&Date)
 

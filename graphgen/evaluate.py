@@ -1,3 +1,4 @@
+# TODO: this module needs refactoring to merge into GraphGen framework
 """Evaluate the quality of the generated text using various metrics"""
 
 import argparse

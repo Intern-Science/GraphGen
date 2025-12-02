@@ -1,0 +1,48 @@
+{
+  "type": "object",
+  "name": "legal contract",
+  "description": "A legal contract for leasing property.",
+  "properties": {
+      "leased_space": {
+          "type": "string",
+          "description": "Description of the space that is being leased."
+      },
+      "lessee": {
+          "type": "string",
+          "description": "The lessee's name (and possibly address)."
+      },
+      "lessor": {
+          "type": "string",
+          "description": "The lessor's name (and possibly address)."
+      },
+      "signing_date": {
+          "type": "string",
+          "description": "The date the contract was signed."
+      },
+      "start_date": {
+          "type": "string",
+          "description": "The start date of the lease."
+      },
+      "end_date": {
+          "type": "string",
+          "description": "The end date of the lease."
+      },
+      "term_of_payment": {
+          "type": "string",
+          "description": "Description of the payment terms."
+      },
+      "designated_use": {
+          "type": "string",
+          "description": "Designated use of the property being leased."
+      },
+      "extension_period": {
+          "type": "string",
+          "description": "Description of the extension options for the lease."
+      },
+      "expiration_date_of_lease": {
+          "type": "string",
+          "description": "The expiration date of the lease."
+      }
+  },
+    "required": ["lessee", "lessor", "start_date", "end_date"]
+}

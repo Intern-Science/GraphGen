@@ -75,7 +75,8 @@ class NetworkXStorage(BaseGraphStorage):
 
     def __post_init__(self):
         """
-        如果图文件存在，则加载图文件，否则创建一个新图
+        Initialize the NetworkX graph storage by loading an existing graph from a GraphML file,
+        if it exists, or creating a new empty graph otherwise.
         """
         self._graphml_xml_file = os.path.join(
             self.working_dir, f"{self.namespace}.graphml"
@@ -90,60 +91,56 @@ class NetworkXStorage(BaseGraphStorage):
             )
         self._graph = preloaded_graph or nx.Graph()
 
-    async def index_done_callback(self):
+    def index_done_callback(self):
         NetworkXStorage.write_nx_graph(self._graph, self._graphml_xml_file)
 
-    async def has_node(self, node_id: str) -> bool:
+    def has_node(self, node_id: str) -> bool:
         return self._graph.has_node(node_id)
 
-    async def has_edge(self, source_node_id: str, target_node_id: str) -> bool:
+    def has_edge(self, source_node_id: str, target_node_id: str) -> bool:
         return self._graph.has_edge(source_node_id, target_node_id)
 
-    async def get_node(self, node_id: str) -> Union[dict, None]:
+    def get_node(self, node_id: str) -> Union[dict, None]:
         return self._graph.nodes.get(node_id)
 
-    async def get_all_nodes(self) -> Union[list[tuple[str, dict]], None]:
+    def get_all_nodes(self) -> Union[list[tuple[str, dict]], None]:
         return list(self._graph.nodes(data=True))
 
-    async def node_degree(self, node_id: str) -> int:
-        return self._graph.degree(node_id)
+    def node_degree(self, node_id: str) -> int:
+        return int(self._graph.degree[node_id])
 
-    async def edge_degree(self, src_id: str, tgt_id: str) -> int:
-        return self._graph.degree(src_id) + self._graph.degree(tgt_id)
+    def edge_degree(self, src_id: str, tgt_id: str) -> int:
+        return int(self._graph.degree[src_id] + self._graph.degree[tgt_id])
 
-    async def get_edge(
-        self, source_node_id: str, target_node_id: str
-    ) -> Union[dict, None]:
+    def get_edge(self, source_node_id: str, target_node_id: str) -> Union[dict, None]:
         return self._graph.edges.get((source_node_id, target_node_id))
 
-    async def get_all_edges(self) -> Union[list[tuple[str, str, dict]], None]:
+    def get_all_edges(self) -> Union[list[tuple[str, str, dict]], None]:
         return list(self._graph.edges(data=True))
 
-    async def get_node_edges(
-        self, source_node_id: str
-    ) -> Union[list[tuple[str, str]], None]:
+    def get_node_edges(self, source_node_id: str) -> Union[list[tuple[str, str]], None]:
         if self._graph.has_node(source_node_id):
             return list(self._graph.edges(source_node_id, data=True))
         return None
 
-    async def get_graph(self) -> nx.Graph:
+    def get_graph(self) -> nx.Graph:
         return self._graph
 
-    async def upsert_node(self, node_id: str, node_data: dict[str, str]):
+    def upsert_node(self, node_id: str, node_data: dict[str, str]):
         self._graph.add_node(node_id, **node_data)
 
-    async def update_node(self, node_id: str, node_data: dict[str, str]):
+    def update_node(self, node_id: str, node_data: dict[str, str]):
         if self._graph.has_node(node_id):
             self._graph.nodes[node_id].update(node_data)
         else:
             logger.warning("Node %s not found in the graph for update.", node_id)
 
-    async def upsert_edge(
+    def upsert_edge(
         self, source_node_id: str, target_node_id: str, edge_data: dict[str, str]
     ):
         self._graph.add_edge(source_node_id, target_node_id, **edge_data)
 
-    async def update_edge(
+    def update_edge(
         self, source_node_id: str, target_node_id: str, edge_data: dict[str, str]
     ):
         if self._graph.has_edge(source_node_id, target_node_id):
@@ -155,7 +152,7 @@ class NetworkXStorage(BaseGraphStorage):
                 target_node_id,
             )
 
-    async def delete_node(self, node_id: str):
+    def delete_node(self, node_id: str):
         """
         Delete a node from the graph based on the specified node_id.
 
@@ -167,7 +164,7 @@ class NetworkXStorage(BaseGraphStorage):
         else:
             logger.warning("Node %s not found in the graph for deletion.", node_id)
 
-    async def clear(self):
+    def clear(self):
         """
         Clear the graph by removing all nodes and edges.
         """

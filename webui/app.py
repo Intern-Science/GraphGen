@@ -8,6 +8,7 @@ import gradio as gr
 import pandas as pd
 from dotenv import load_dotenv
 
+from graphgen.engine import Context, Engine, collect_ops
 from graphgen.graphgen import GraphGen
 from graphgen.models import OpenAIClient, Tokenizer
 from graphgen.models.llm.limitter import RPM, TPM
@@ -41,7 +42,7 @@ def init_graph_gen(config: dict, env: dict) -> GraphGen:
 
     tokenizer_instance = Tokenizer(config.get("tokenizer", "cl100k_base"))
     synthesizer_llm_client = OpenAIClient(
-        model_name=env.get("SYNTHESIZER_MODEL", ""),
+        model=env.get("SYNTHESIZER_MODEL", ""),
         base_url=env.get("SYNTHESIZER_BASE_URL", ""),
         api_key=env.get("SYNTHESIZER_API_KEY", ""),
         request_limit=True,
@@ -50,7 +51,7 @@ def init_graph_gen(config: dict, env: dict) -> GraphGen:
         tokenizer=tokenizer_instance,
     )
     trainee_llm_client = OpenAIClient(
-        model_name=env.get("TRAINEE_MODEL", ""),
+        model=env.get("TRAINEE_MODEL", ""),
         base_url=env.get("TRAINEE_BASE_URL", ""),
         api_key=env.get("TRAINEE_API_KEY", ""),
         request_limit=True,
@@ -97,26 +98,78 @@ def run_graphgen(params: WebuiParams, progress=gr.Progress()):
             "unit_sampling": params.ece_unit_sampling,
         }
 
+    pipeline = [
+        {
+            "name": "read",
+            "op_key": "read",
+            "params": {
+                "input_file": params.upload_file,
+            },
+        },
+        {
+            "name": "chunk",
+            "deps": ["read"],
+            "op_key": "chunk",
+            "params": {
+                "chunk_size": params.chunk_size,
+                "chunk_overlap": params.chunk_overlap,
+            },
+        },
+        {
+            "name": "build_kg",
+            "deps": ["chunk"],
+            "op_key": "build_kg",
+        },
+    ]
+
+    if params.if_trainee_model:
+        pipeline.append(
+            {
+                "name": "quiz_and_judge",
+                "deps": ["build_kg"],
+                "op_key": "quiz_and_judge",
+                "params": {"quiz_samples": params.quiz_samples, "re_judge": True},
+            }
+        )
+        pipeline.append(
+            {
+                "name": "partition",
+                "deps": ["quiz_and_judge"],
+                "op_key": "partition",
+                "params": {
+                    "method": params.partition_method,
+                    "method_params": partition_params,
+                },
+            }
+        )
+    else:
+        pipeline.append(
+            {
+                "name": "partition",
+                "deps": ["build_kg"],
+                "op_key": "partition",
+                "params": {
+                    "method": params.partition_method,
+                    "method_params": partition_params,
+                },
+            }
+        )
+    pipeline.append(
+        {
+            "name": "generate",
+            "deps": ["partition"],
+            "op_key": "generate",
+            "params": {
+                "method": params.mode,
+                "data_format": params.data_format,
+            },
+        }
+    )
+
     config = {
         "if_trainee_model": params.if_trainee_model,
         "read": {"input_file": params.upload_file},
-        "split": {
-            "chunk_size": params.chunk_size,
-            "chunk_overlap": params.chunk_overlap,
-        },
-        "search": {"enabled": False},
-        "quiz_and_judge": {
-            "enabled": params.if_trainee_model,
-            "quiz_samples": params.quiz_samples,
-        },
-        "partition": {
-            "method": params.partition_method,
-            "method_params": partition_params,
-        },
-        "generate": {
-            "mode": params.mode,
-            "data_format": params.data_format,
-        },
+        "pipeline": pipeline,
     }
 
     env = {
@@ -145,20 +198,12 @@ def run_graphgen(params: WebuiParams, progress=gr.Progress()):
     # Initialize GraphGen
     graph_gen = init_graph_gen(config, env)
     graph_gen.clear()
-
     graph_gen.progress_bar = progress
 
     try:
-        # Process the data
-        graph_gen.insert(read_config=config["read"], split_config=config["split"])
-
-        if config["if_trainee_model"]:
-            graph_gen.quiz_and_judge(quiz_and_judge_config=config["quiz_and_judge"])
-
-        graph_gen.generate(
-            partition_config=config["partition"],
-            generate_config=config["generate"],
-        )
+        ctx = Context(config=config, graph_gen=graph_gen)
+        ops = collect_ops(config, graph_gen)
+        Engine(max_workers=config.get("max_workers", 4)).run(ops, ctx)
 
         # Save output
         output_data = graph_gen.qa_storage.data

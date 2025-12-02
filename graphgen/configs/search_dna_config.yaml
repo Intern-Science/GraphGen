@@ -1,0 +1,17 @@
+pipeline:
+  - name: read_step
+    op_key: read
+    params:
+      input_file:  resources/input_examples/search_dna_demo.jsonl # input file path, support json, jsonl, txt, pdf. See resources/input_examples for examples
+
+  - name: search_step
+    op_key: search
+    deps: [read_step] # search_step depends on read_step
+    params:
+      data_sources: [ncbi] # data source for searcher, support: wikipedia, google, uniprot, ncbi, rnacentral
+      ncbi_params:
+        email: test@example.com # NCBI requires an email address
+        tool: GraphGen # tool name for NCBI API
+        use_local_blast: true # whether to use local blast for DNA search
+        local_blast_db: /your_path/refseq_241 # path to local BLAST database (without .nhr extension)
+

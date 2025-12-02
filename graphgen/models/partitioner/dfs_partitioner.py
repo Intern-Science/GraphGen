@@ -22,8 +22,8 @@ class DFSPartitioner(BasePartitioner):
         max_units_per_community: int = 1,
         **kwargs: Any,
     ) -> List[Community]:
-        nodes = await g.get_all_nodes()
-        edges = await g.get_all_edges()
+        nodes = g.get_all_nodes()
+        edges = g.get_all_edges()
 
         adj, _ = self._build_adjacency_list(nodes, edges)
 

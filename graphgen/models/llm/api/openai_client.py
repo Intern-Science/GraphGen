@@ -2,7 +2,7 @@ import math
 from typing import Any, Dict, List, Optional
 
 import openai
-from openai import APIConnectionError, APITimeoutError, AsyncOpenAI, RateLimitError
+from openai import APIConnectionError, APITimeoutError, AsyncOpenAI, AsyncAzureOpenAI, RateLimitError
 from tenacity import (
     retry,
     retry_if_exception_type,
@@ -32,20 +32,23 @@ class OpenAIClient(BaseLLMWrapper):
     def __init__(
         self,
         *,
-        model_name: str = "gpt-4o-mini",
+        model: str = "gpt-4o-mini",
         api_key: Optional[str] = None,
         base_url: Optional[str] = None,
+        api_version: Optional[str] = None,
         json_mode: bool = False,
         seed: Optional[int] = None,
         topk_per_token: int = 5,  # number of topk tokens to generate for each token
         request_limit: bool = False,
         rpm: Optional[RPM] = None,
         tpm: Optional[TPM] = None,
+        backend: str = "openai_api",
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
-        self.model_name = model_name
+        self.model = model
         self.api_key = api_key
+        self.api_version = api_version # required for Azure OpenAI
         self.base_url = base_url
         self.json_mode = json_mode
         self.seed = seed
@@ -56,13 +59,32 @@ class OpenAIClient(BaseLLMWrapper):
         self.rpm = rpm or RPM()
         self.tpm = tpm or TPM()
 
+        assert (
+            backend in ("openai_api", "azure_openai_api")
+        ), f"Unsupported backend '{backend}'. Use 'openai_api' or 'azure_openai_api'."
+        self.backend = backend
+
         self.__post_init__()
 
     def __post_init__(self):
-        assert self.api_key is not None, "Please provide api key to access openai api."
-        self.client = AsyncOpenAI(
-            api_key=self.api_key or "dummy", base_url=self.base_url
-        )
+
+        api_name = self.backend.replace("_", " ")
+        assert self.api_key is not None, f"Please provide api key to access {api_name}."
+        if self.backend == "openai_api":
+            self.client = AsyncOpenAI(
+                api_key=self.api_key or "dummy", base_url=self.base_url
+            )
+        elif self.backend == "azure_openai_api":
+            assert self.api_version is not None, f"Please provide api_version for {api_name}."
+            assert self.base_url is not None, f"Please provide base_url for {api_name}."
+            self.client = AsyncAzureOpenAI(
+                api_key=self.api_key,
+                azure_endpoint=self.base_url,
+                api_version=self.api_version,
+                azure_deployment=self.model,
+            )
+        else:
+            raise ValueError(f"Unsupported backend {self.backend}. Use 'openai_api' or 'azure_openai_api'.")
 
     def _pre_generate(self, text: str, history: List[str]) -> Dict:
         kwargs = {
@@ -109,7 +131,7 @@ class OpenAIClient(BaseLLMWrapper):
         kwargs["max_tokens"] = 1
 
         completion = await self.client.chat.completions.create(  # pylint: disable=E1125
-            model=self.model_name, **kwargs
+            model=self.model, **kwargs
         )
 
         tokens = get_top_response_tokens(completion)
@@ -141,7 +163,7 @@ class OpenAIClient(BaseLLMWrapper):
             await self.tpm.wait(estimated_tokens, silent=True)
 
         completion = await self.client.chat.completions.create(  # pylint: disable=E1125
-            model=self.model_name, **kwargs
+            model=self.model, **kwargs
         )
         if hasattr(completion, "usage"):
             self.token_usage.append(

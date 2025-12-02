@@ -105,7 +105,7 @@ class LightRAGKGBuilder(BaseKGBuilder):
         source_ids = []
         descriptions = []
 
-        node = await kg_instance.get_node(entity_name)
+        node = kg_instance.get_node(entity_name)
         if node is not None:
             entity_types.append(node["entity_type"])
             source_ids.extend(
@@ -134,7 +134,7 @@ class LightRAGKGBuilder(BaseKGBuilder):
             "description": description,
             "source_id": source_id,
         }
-        await kg_instance.upsert_node(entity_name, node_data=node_data)
+        kg_instance.upsert_node(entity_name, node_data=node_data)
 
     async def merge_edges(
         self,
@@ -146,7 +146,7 @@ class LightRAGKGBuilder(BaseKGBuilder):
         source_ids = []
         descriptions = []
 
-        edge = await kg_instance.get_edge(src_id, tgt_id)
+        edge = kg_instance.get_edge(src_id, tgt_id)
         if edge is not None:
             source_ids.extend(
                 split_string_by_multi_markers(edge["source_id"], ["<SEP>"])
@@ -161,8 +161,8 @@ class LightRAGKGBuilder(BaseKGBuilder):
         )
 
         for insert_id in [src_id, tgt_id]:
-            if not await kg_instance.has_node(insert_id):
-                await kg_instance.upsert_node(
+            if not kg_instance.has_node(insert_id):
+                kg_instance.upsert_node(
                     insert_id,
                     node_data={
                         "source_id": source_id,
@@ -175,7 +175,7 @@ class LightRAGKGBuilder(BaseKGBuilder):
             f"({src_id}, {tgt_id})", description
         )
 
-        await kg_instance.upsert_edge(
+        kg_instance.upsert_edge(
             src_id,
             tgt_id,
             edge_data={"source_id": source_id, "description": description},

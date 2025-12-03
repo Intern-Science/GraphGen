@@ -21,6 +21,7 @@ class RocksDBCache:
         try:
             del self.db[key]
         except KeyError:
+            # If the key does not exist, do nothing (deletion is idempotent for caches)
             pass
 
     def close(self):

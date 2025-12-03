@@ -20,12 +20,14 @@ requests
 fastapi
 trafilatura
 aiohttp
-diskcache
 socksio
 
 leidenalg
 igraph
 python-louvain
+
+# storage
+rocksdict
 
 # KG
 rdflib

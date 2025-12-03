@@ -4,8 +4,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any, Dict, List, Set, Union
 
-from diskcache import Cache
-
+from graphgen.models import RocksDBCache
 from graphgen.utils import logger
 
 
@@ -13,7 +12,7 @@ class ParallelFileScanner:
     def __init__(
         self, cache_dir: str, allowed_suffix, rescan: bool = False, max_workers: int = 4
     ):
-        self.cache = Cache(cache_dir)
+        self.cache = RocksDBCache(os.path.join(cache_dir, "file_paths_cache"))
         self.allowed_suffix = set(allowed_suffix) if allowed_suffix else None
         self.rescan = rescan
         self.max_workers = max_workers

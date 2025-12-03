@@ -14,22 +14,17 @@ class ParquetReader(BaseReader):
     - if type is "text", "content" column must be present.
     """
 
-    def read(
-        self,
-        input_path: Union[str, List[str]],
-        parallelism: int = None,
-    ) -> Dataset:
+    def read(self, input_path: Union[str, List[str]]) -> Dataset:
         """
         Read Parquet files using Ray Data.
 
         :param input_path: Path to Parquet file or list of Parquet files.
-        :param parallelism: Number of blocks for Ray Dataset reading.
         :return: Ray Dataset containing validated documents.
         """
         if not ray.is_initialized():
             ray.init()
 
-        ds = ray.data.read_parquet(input_path, override_num_blocks=parallelism)
+        ds = ray.data.read_parquet(input_path)
         ds = ds.map_batches(self._validate_batch, batch_format="pandas")
         ds = ds.filter(self._should_keep_item)
         return ds

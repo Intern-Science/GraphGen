@@ -23,22 +23,18 @@ class PickleReader(BaseReader):
     def read(
         self,
         input_path: Union[str, List[str]],
-        parallelism: int = None,
     ) -> Dataset:
         """
         Read Pickle files using Ray Data.
 
         :param input_path: Path to pickle file or list of pickle files.
-        :param parallelism: Number of blocks for Ray Dataset reading.
         :return: Ray Dataset containing validated documents.
         """
         if not ray.is_initialized():
             ray.init()
 
         # Use read_binary_files as a reliable alternative to read_pickle
-        ds = ray.data.read_binary_files(
-            input_path, override_num_blocks=parallelism, include_paths=True
-        )
+        ds = ray.data.read_binary_files(input_path, include_paths=True)
 
         # Deserialize pickle files and flatten into individual records
         def deserialize_batch(batch: pd.DataFrame) -> pd.DataFrame:

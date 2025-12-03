@@ -30,13 +30,11 @@ class RDFReader(BaseReader):
     def read(
         self,
         input_path: Union[str, List[str]],
-        parallelism: int = 4,
     ) -> Dataset:
         """
         Read RDF file(s) using Ray Data.
 
         :param input_path: Path to RDF file or list of RDF files.
-        :param parallelism: Number of parallel workers for processing.
         :return: Ray Dataset containing extracted documents.
         """
         if not ray.is_initialized():

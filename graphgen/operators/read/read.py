@@ -47,10 +47,10 @@ def _build_reader(suffix: str, cache_dir: str | None, **reader_kwargs):
     return reader_cls(**reader_kwargs)
 
 
-def read_files(
+def read(
     input_path: Union[str, List[str]],
     allowed_suffix: Optional[List[str]] = None,
-    cache_dir: Optional[str] = None,
+    cache_dir: Optional[str] = "cache",
     parallelism: int = 4,
     recursive: bool = True,
     **reader_kwargs: Any,
@@ -101,7 +101,7 @@ def read_files(
         read_tasks = []
         for suffix, file_paths in files_by_suffix.items():
             reader = _build_reader(suffix, cache_dir, **reader_kwargs)
-            ds = reader.read(file_paths, parallelism=parallelism)
+            ds = reader.read(file_paths)
             read_tasks.append(ds)
 
         # 4. Combine all datasets

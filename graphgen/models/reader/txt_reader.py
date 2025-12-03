@@ -10,17 +10,13 @@ class TXTReader(BaseReader):
     def read(
         self,
         input_path: Union[str, List[str]],
-        parallelism: int = 4,
     ) -> Dataset:
         """
         Read text files from the specified input path.
         :param input_path: Path to the input text file or list of text files.
-        :param parallelism: Number of blocks to override for Ray Dataset reading.
         :return: Ray Dataset containing the read text data.
         """
-        docs_ds = ray.data.read_text(
-            input_path, encoding="utf-8", override_num_blocks=parallelism
-        )
+        docs_ds = ray.data.read_text(input_path, encoding="utf-8")
 
         docs_ds = docs_ds.map(
             lambda row: {

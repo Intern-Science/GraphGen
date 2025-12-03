@@ -14,19 +14,14 @@ class JSONReader(BaseReader):
         - if type is "text", "content" column must be present.
     """
 
-    def read(
-        self,
-        input_path: Union[str, List[str]],
-        parallelism: int = 4,
-    ) -> Dataset:
+    def read(self, input_path: Union[str, List[str]]) -> Dataset:
         """
         Read JSON file and return Ray Dataset.
         :param input_path: Path to JSON/JSONL file or list of JSON/JSONL files.
-        :param parallelism: Number of parallel workers for reading files.
         :return: Ray Dataset containing validated and filtered data.
         """
 
-        ds = ray.data.read_json(input_path, override_num_blocks=parallelism)
+        ds = ray.data.read_json(input_path)
         ds = ds.map_batches(self._validate_batch, batch_format="pandas")
         ds = ds.filter(self._should_keep_item)
         return ds

@@ -9,9 +9,13 @@ import pandas as pd
 from dotenv import load_dotenv
 
 from graphgen.bases.datatypes import QAPair
-
-from .models import LengthEvaluator, MTLDEvaluator, RewardEvaluator, UniEvaluator
-from .utils import logger, set_logger
+from graphgen.models import (
+    LengthEvaluator,
+    MTLDEvaluator,
+    RewardEvaluator,
+    UniEvaluator,
+)
+from graphgen.utils import logger, set_logger
 
 sys_path = os.path.abspath(os.path.dirname(__file__))
 set_logger(os.path.join(sys_path, "cache", "logs", "evaluate.log"))

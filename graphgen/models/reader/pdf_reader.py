@@ -68,7 +68,6 @@ class PDFReader(BaseReader):
     def read(
         self,
         input_path: Union[str, List[str]],
-        parallelism: int = 4,
         **override,
     ) -> Dataset:
 

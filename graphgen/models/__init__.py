@@ -18,7 +18,6 @@ from .partitioner import (
 )
 from .reader import (
     CSVReader,
-    JSONLReader,
     JSONReader,
     ParquetReader,
     PDFReader,

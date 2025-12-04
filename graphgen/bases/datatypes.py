@@ -62,6 +62,9 @@ class Node(BaseModel):
     dependencies: List[str] = Field(
         default_factory=list, description="list of dependent node ids"
     )
+    execution_params: dict = Field(
+        default_factory=dict, description="execution parameters like replicas, batch_size"
+    )
 
     @classmethod
     @field_validator("type")
@@ -73,6 +76,10 @@ class Node(BaseModel):
 
 
 class Config(BaseModel):
+    global_params: dict = Field(
+        default_factory=dict, description="global context for the computation graph"
+    )
+
     nodes: List[Node] = Field(
         ..., min_length=1, description="list of nodes in the computation graph"
     )

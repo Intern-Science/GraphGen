@@ -15,6 +15,7 @@ class Engine:
         self, config: Dict[str, Any], functions: Dict[str, Callable], **ray_init_kwargs
     ):
         self.config = Config(**config)
+        self.global_params = self.config.global_params
         self.functions = functions
         self.datasets: Dict[str, ray.data.Dataset] = {}
 
@@ -90,28 +91,59 @@ class Engine:
         return main_ds.union(*other_dss)
 
     def _execute_node(self, node: Node, initial_ds: ray.data.Dataset):
+        def _filter_kwargs(
+            func_or_class: Callable,
+            global_params: Dict[str, Any],
+            func_params: Dict[str, Any],
+        ) -> Dict[str, Any]:
+            """
+            1. global_params: only when specified in function signature, will be passed
+            2. func_params: pass specified params first, then **kwargs if exists
+            """
+            try:
+                sig = inspect.signature(func_or_class)
+            except ValueError:
+                return {}
+
+            params = sig.parameters
+            final_kwargs = {}
+
+            has_var_keywords = any(
+                p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values()
+            )
+            valid_keys = set(params.keys())
+            for k, v in global_params.items():
+                if k in valid_keys:
+                    final_kwargs[k] = v
+
+            for k, v in func_params.items():
+                if k in valid_keys or has_var_keywords:
+                    final_kwargs[k] = v
+                elif has_var_keywords:
+                    final_kwargs[k] = v
+            return final_kwargs
+
         if node.op_name not in self.functions:
             raise ValueError(f"Operator {node.op_name} not found for node {node.id}")
 
+        op_handler = self.functions[node.op_name]
+        node_params = _filter_kwargs(op_handler, self.global_params, node.params or {})
+
         if node.type == "source":
-            op_handler = self.functions[node.op_name]
-            node_params = node.params
             self.datasets[node.id] = op_handler(**node_params)
             return
 
         input_ds = self._get_input_dataset(node, initial_ds)
 
-        op_handler = self.functions[node.op_name]
-        node_params = node.params
-
         if inspect.isclass(op_handler):
-            replicas = node_params.pop("replicas", 1)
+            execution_params = node.execution_params or {}
+            replicas = execution_params.get("replicas", 1)
             batch_size = (
-                int(node_params.pop("batch_size"))
-                if "batch_size" in node_params
+                int(execution_params.get("batch_size"))
+                if "batch_size" in execution_params
                 else "default"
             )
-            compute_resources = node_params.pop("compute_resources", {})
+            compute_resources = execution_params.get("compute_resources", {})
 
             if node.type == "aggregate":
                 self.datasets[node.id] = input_ds.repartition(1).map_batches(

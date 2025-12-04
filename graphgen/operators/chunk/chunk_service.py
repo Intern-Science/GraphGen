@@ -1,10 +1,8 @@
-import asyncio
 import os
 from functools import lru_cache
 from typing import Union
 
 import pandas as pd
-from tqdm.asyncio import tqdm as tqdm_async
 
 from graphgen.models import (
     ChineseRecursiveTextSplitter,

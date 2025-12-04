@@ -2,156 +2,219 @@
 
 set -e
 
-# Downloads NCBI RefSeq RNA sequences and creates BLAST databases.
-# This script specifically downloads RNA sequences (mRNA, rRNA, tRNA, etc.)
-# from RefSeq, which is suitable for RNA sequence searches.
+# Downloads RNAcentral sequences and creates BLAST databases.
+# This script downloads the RNAcentral active database, which is the same
+# data source used for online RNAcentral searches, ensuring consistency
+# between local and online search results.
 #
-# Usage: ./build_rna_blast_db.sh [representative|complete|all]
-#   representative: Download RNA sequences from major categories (recommended, smaller)
-#                    Includes: vertebrate_mammalian, vertebrate_other, bacteria, archaea, fungi, invertebrate, plant, viral
-#   complete: Download all RNA sequences from complete/ directory (very large)
-#   all: Download all RNA sequences from all categories (very large)
+# RNAcentral is a comprehensive database of non-coding RNA sequences that
+# integrates data from multiple expert databases including RefSeq, Rfam, etc.
+#
+# Usage: ./build_rna_blast_db.sh [all|list|database_name]
+#   all (default): Download complete active database (~8.4G compressed)
+#   list: List all available database subsets
+#   database_name: Download specific database subset (e.g., refseq, rfam, mirbase)
+#
+# Available database subsets (examples):
+#   - refseq.fasta (~98M): RefSeq RNA sequences
+#   - rfam.fasta (~1.5G): Rfam RNA families
+#   - mirbase.fasta (~10M): microRNA sequences
+#   - ensembl.fasta (~2.9G): Ensembl annotations
+#   - See "list" option for complete list
+#
+# The complete "active" database contains all sequences from all expert databases.
+# Using a specific database subset provides a smaller, focused database.
 #
 # We need makeblastdb on our PATH
 # For Ubuntu/Debian: sudo apt install ncbi-blast+
 # For CentOS/RHEL/Fedora: sudo dnf install ncbi-blast+
 # Or download from: https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/
 
-DOWNLOAD_TYPE=${1:-representative}
+# RNAcentral HTTP base URL (using HTTPS for better reliability)
+RNACENTRAL_BASE="https://ftp.ebi.ac.uk/pub/databases/RNAcentral"
+RNACENTRAL_RELEASE_URL="${RNACENTRAL_BASE}/current_release"
+RNACENTRAL_SEQUENCES_URL="${RNACENTRAL_RELEASE_URL}/sequences"
+RNACENTRAL_BY_DB_URL="${RNACENTRAL_SEQUENCES_URL}/by-database"
+
+# Parse command line argument
+DB_SELECTION=${1:-all}
+
+# List available databases if requested
+if [ "${DB_SELECTION}" = "list" ]; then
+    echo "Available RNAcentral database subsets:"
+    echo ""
+    echo "Fetching list from RNAcentral FTP..."
+    curl -s "${RNACENTRAL_BY_DB_URL}/" | \
+        grep -oE '<a href="[^"]*\.fasta">' | \
+        sed 's/<a href="//;s/">//' | \
+        sort | \
+        while read db; do
+            size=$(curl -s "${RNACENTRAL_BY_DB_URL}/" | grep -A 1 "${db}" | grep -oE '[0-9.]+[GMK]' | head -1 || echo "unknown")
+            echo "  - ${db%.fasta}: ${size}"
+        done
+    echo ""
+    echo "Usage: $0 [database_name]"
+    echo "  Example: $0 refseq    # Download only RefSeq sequences (~98M)"
+    echo "  Example: $0 rfam      # Download only Rfam sequences (~1.5G)"
+    echo "  Example: $0 all       # Download complete active database (~8.4G)"
+    exit 0
+fi
 
 # Better to use a stable DOWNLOAD_TMP name to support resuming downloads
-DOWNLOAD_TMP=_downloading_rna
+DOWNLOAD_TMP=_downloading_rnacentral
 mkdir -p ${DOWNLOAD_TMP}
 cd ${DOWNLOAD_TMP}
 
-# Download RefSeq release information
-echo "Downloading RefSeq release information..."
-wget -c "https://ftp.ncbi.nlm.nih.gov/refseq/release/RELEASE_NUMBER" || {
-    echo "Warning: Could not download RELEASE_NUMBER, using current date as release identifier"
+# Get RNAcentral release version from release notes
+echo "Getting RNAcentral release information..."
+RELEASE_NOTES_URL="${RNACENTRAL_RELEASE_URL}/release_notes.txt"
+RELEASE_NOTES="release_notes.txt"
+wget -q "${RELEASE_NOTES_URL}" 2>/dev/null || {
+    echo "Warning: Could not download release notes, using current date as release identifier"
     RELEASE=$(date +%Y%m%d)
 }
 
-if [ -f "RELEASE_NUMBER" ]; then
-    RELEASE=$(cat RELEASE_NUMBER | tr -d '\n')
-    echo "RefSeq release: ${RELEASE}"
+if [ -f "${RELEASE_NOTES}" ]; then
+    # Try to extract version from release notes (first line usually contains version info)
+    RELEASE=$(head -1 "${RELEASE_NOTES}" | grep -oE '[0-9]+\.[0-9]+' | head -1 | tr -d '.' || date +%Y%m%d)
+    if [ -z "${RELEASE}" ] || [ "${RELEASE}" = "$(date +%Y%m%d)" ]; then
+        RELEASE=$(date +%Y%m%d)
+        echo "Using date as release identifier: ${RELEASE}"
+    else
+        echo "RNAcentral release: ${RELEASE}"
+    fi
 else
     RELEASE=$(date +%Y%m%d)
     echo "Using date as release identifier: ${RELEASE}"
 fi
 
-# Download based on type
-case ${DOWNLOAD_TYPE} in
-    representative)
-        echo "Downloading RefSeq representative RNA sequences (recommended, smaller size)..."
-        echo "Downloading RNA sequences from major categories..."
-        for category in vertebrate_mammalian vertebrate_other bacteria archaea fungi invertebrate plant viral; do
-            echo "Downloading ${category} RNA sequences..."
-            curl -s "https://ftp.ncbi.nlm.nih.gov/refseq/release/${category}/" | \
-                grep -oE 'href="[^"]*\.rna\.fna\.gz"' | \
-                sed 's/href="\(.*\)"/\1/' | \
-                while read filename; do
-                    echo "  Downloading ${filename}..."
-                    wget -c -q --show-progress \
-                        "https://ftp.ncbi.nlm.nih.gov/refseq/release/${category}/${filename}" || {
-                        echo "Warning: Failed to download ${filename}"
-                    }
-                done
-        done
-        ;;
-    complete)
-        echo "Downloading RefSeq complete RNA sequences (WARNING: very large, may take hours)..."
-        curl -s "https://ftp.ncbi.nlm.nih.gov/refseq/release/complete/" | \
-            grep -oE 'href="[^"]*\.rna\.fna\.gz"' | \
-            sed 's/href="\(.*\)"/\1/' | \
-            while read filename; do
-                echo "  Downloading ${filename}..."
-                wget -c -q --show-progress \
-                    "https://ftp.ncbi.nlm.nih.gov/refseq/release/complete/${filename}" || {
-                    echo "Warning: Failed to download ${filename}"
-                }
-            done
-        ;;
-    all)
-        echo "Downloading all RefSeq RNA sequences from all categories (WARNING: extremely large, may take many hours)..."
-        for category in vertebrate_mammalian vertebrate_other bacteria archaea fungi invertebrate plant viral protozoa mitochondrion plastid plasmid other; do
-            echo "Downloading ${category} RNA sequences..."
-            curl -s "https://ftp.ncbi.nlm.nih.gov/refseq/release/${category}/" | \
-                grep -oE 'href="[^"]*\.rna\.fna\.gz"' | \
-                sed 's/href="\(.*\)"/\1/' | \
-                while read filename; do
-                    echo "  Downloading ${filename}..."
-                    wget -c -q --show-progress \
-                        "https://ftp.ncbi.nlm.nih.gov/refseq/release/${category}/${filename}" || {
-                        echo "Warning: Failed to download ${filename}"
-                    }
-                done
-        done
-        ;;
-    *)
-        echo "Error: Unknown download type '${DOWNLOAD_TYPE}'"
-        echo "Usage: $0 [representative|complete|all]"
+# Download RNAcentral FASTA file
+if [ "${DB_SELECTION}" = "all" ]; then
+    # Download complete active database
+    FASTA_FILE="rnacentral_active.fasta.gz"
+    DB_NAME="rnacentral"
+    echo "Downloading RNAcentral active sequences (~8.4G)..."
+    echo "  Contains sequences currently present in at least one expert database"
+    echo "  Uses standard URS IDs (e.g., URS000149A9AF)"
+    echo "  ⭐ MATCHES the online RNAcentral API database - ensures consistency"
+    FASTA_URL="${RNACENTRAL_SEQUENCES_URL}/${FASTA_FILE}"
+    IS_COMPRESSED=true
+else
+    # Download specific database subset
+    DB_NAME="${DB_SELECTION}"
+    FASTA_FILE="${DB_SELECTION}.fasta"
+    echo "Downloading RNAcentral database subset: ${DB_SELECTION}"
+    echo "  This is a subset of the active database from a specific expert database"
+    echo "  File: ${FASTA_FILE}"
+    FASTA_URL="${RNACENTRAL_BY_DB_URL}/${FASTA_FILE}"
+    IS_COMPRESSED=false
+    
+    # Check if database exists
+    if ! curl -s -o /dev/null -w "%{http_code}" "${FASTA_URL}" | grep -q "200"; then
+        echo "Error: Database '${DB_SELECTION}' not found"
+        echo "Run '$0 list' to see available databases"
         exit 1
-        ;;
-esac
+    fi
+fi
+
+echo "Downloading from: ${FASTA_URL}"
+echo "This may take a while depending on your internet connection..."
+if [ "${DB_SELECTION}" = "all" ]; then
+    echo "File size is approximately 8-9GB, please be patient..."
+else
+    echo "Downloading database subset..."
+fi
+wget -c --progress=bar:force "${FASTA_URL}" 2>&1 || {
+    echo "Error: Failed to download RNAcentral FASTA file"
+    echo "Please check your internet connection and try again"
+    echo "You can also try downloading manually from: ${FASTA_URL}"
+    exit 1
+}
+
+if [ ! -f "${FASTA_FILE}" ]; then
+    echo "Error: Downloaded file not found"
+    exit 1
+fi
 
 cd ..
 
 # Create release directory
-mkdir -p refseq_rna_${RELEASE}
-mv ${DOWNLOAD_TMP}/* refseq_rna_${RELEASE}/ 2>/dev/null || true
+if [ "${DB_SELECTION}" = "all" ]; then
+    OUTPUT_DIR="rnacentral_${RELEASE}"
+else
+    OUTPUT_DIR="rnacentral_${DB_NAME}_${RELEASE}"
+fi
+mkdir -p ${OUTPUT_DIR}
+mv ${DOWNLOAD_TMP}/* ${OUTPUT_DIR}/ 2>/dev/null || true
 rmdir ${DOWNLOAD_TMP} 2>/dev/null || true
 
-cd refseq_rna_${RELEASE}
+cd ${OUTPUT_DIR}
 
-# Extract and combine sequences
-echo "Extracting and combining RNA sequences..."
-
-# Extract all downloaded RNA sequences
-if [ $(find . -name "*.rna.fna.gz" -type f | wc -l) -gt 0 ]; then
-    echo "Extracting RNA sequences..."
-    find . -name "*.rna.fna.gz" -type f -exec gunzip {} \;
-fi
-
-# Combine all FASTA files into one
-echo "Combining all FASTA files..."
-FASTA_FILES=$(find . -name "*.fna" -type f)
-if [ -z "$FASTA_FILES" ]; then
-    FASTA_FILES=$(find . -name "*.fa" -type f)
-fi
-
-if [ -z "$FASTA_FILES" ]; then
-    echo "Error: No FASTA files found to combine"
+# Extract FASTA file if compressed
+echo "Preparing RNAcentral sequences..."
+if [ -f "${FASTA_FILE}" ]; then
+    if [ "${IS_COMPRESSED}" = "true" ]; then
+        echo "Decompressing ${FASTA_FILE}..."
+        OUTPUT_FASTA="${DB_NAME}_${RELEASE}.fasta"
+        gunzip -c "${FASTA_FILE}" > "${OUTPUT_FASTA}" || {
+            echo "Error: Failed to decompress FASTA file"
+            exit 1
+        }
+        # Optionally remove the compressed file to save space
+        # rm "${FASTA_FILE}"
+    else
+        # File is not compressed, just copy/rename
+        OUTPUT_FASTA="${DB_NAME}_${RELEASE}.fasta"
+        cp "${FASTA_FILE}" "${OUTPUT_FASTA}" || {
+            echo "Error: Failed to copy FASTA file"
+            exit 1
+        }
+    fi
+else
+    echo "Error: FASTA file not found"
     exit 1
 fi
-
-echo "$FASTA_FILES" | while read -r file; do
-    if [ -f "$file" ]; then
-        cat "$file" >> refseq_rna_${RELEASE}.fasta
-    fi
-done
 
 # Check if we have sequences
-if [ ! -s "refseq_rna_${RELEASE}.fasta" ]; then
-    echo "Error: Combined FASTA file is empty"
+if [ ! -s "${OUTPUT_FASTA}" ]; then
+    echo "Error: FASTA file is empty"
     exit 1
 fi
+
+# Get file size for user information
+FILE_SIZE=$(du -h "${OUTPUT_FASTA}" | cut -f1)
+echo "FASTA file size: ${FILE_SIZE}"
 
 echo "Creating BLAST database..."
 # Create BLAST database for RNA sequences (use -dbtype nucl for nucleotide)
-makeblastdb -in refseq_rna_${RELEASE}.fasta \
-    -out refseq_rna_${RELEASE} \
+# Note: RNAcentral uses RNAcentral IDs (URS...) as sequence identifiers,
+# which matches the format expected by the RNACentralSearch class
+DB_OUTPUT_NAME="${DB_NAME}_${RELEASE}"
+makeblastdb -in "${OUTPUT_FASTA}" \
+    -out "${DB_OUTPUT_NAME}" \
     -dbtype nucl \
     -parse_seqids \
-    -title "RefSeq_RNA_${RELEASE}"
+    -title "RNAcentral_${DB_NAME}_${RELEASE}"
 
-echo "BLAST database created successfully!"
-echo "Database location: $(pwd)/refseq_rna_${RELEASE}"
 echo ""
-echo "To use this database, set in your config:"
-echo "  local_blast_db: $(pwd)/refseq_rna_${RELEASE}"
+echo "BLAST database created successfully!"
+echo "Database location: $(pwd)/${DB_OUTPUT_NAME}"
+echo ""
+echo "To use this database, set in your config (search_rna_config.yaml):"
+echo "  rnacentral_params:"
+echo "    use_local_blast: true"
+echo "    local_blast_db: $(pwd)/${DB_OUTPUT_NAME}"
 echo ""
 echo "Note: The database files are:"
-ls -lh refseq_rna_${RELEASE}.*
+ls -lh ${DB_OUTPUT_NAME}.* | head -5
+echo ""
+if [ "${DB_SELECTION}" = "all" ]; then
+    echo "This database uses RNAcentral IDs (URS...), which matches the online"
+    echo "RNAcentral search API, ensuring consistent results between local and online searches."
+else
+    echo "This is a subset database from ${DB_SELECTION} expert database."
+    echo "For full coverage matching online API, use 'all' option."
+fi
 
 cd ..
 

@@ -24,7 +24,8 @@ set -e
 #   - {category}.{number}.genomic.fna.gz (基因组序列)
 #   - {category}.{number}.rna.fna.gz (RNA序列)
 #
-# Usage: ./build_dna_blast_db.sh [representative|complete|all]
+# Usage: ./build_dna_blast_db.sh [human_mouse|representative|complete|all]
+#   human_mouse: Download only Homo sapiens and Mus musculus sequences (minimal, smallest)
 #   representative: Download genomic sequences from major categories (recommended, smaller)
 #                    Includes: vertebrate_mammalian, vertebrate_other, bacteria, archaea, fungi
 #   complete: Download all complete genomic sequences from complete/ directory (very large)
@@ -35,7 +36,7 @@ set -e
 # For CentOS/RHEL/Fedora: sudo dnf install ncbi-blast+
 # Or download from: https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/
 
-DOWNLOAD_TYPE=${1:-representative}
+DOWNLOAD_TYPE=${1:-human_mouse}
 
 # Better to use a stable DOWNLOAD_TMP name to support resuming downloads
 DOWNLOAD_TMP=_downloading_dna
@@ -57,8 +58,66 @@ else
     echo "Using date as release identifier: ${RELEASE}"
 fi
 
+# Function to check if a file contains target species
+check_file_for_species() {
+    local url=$1
+    local filename=$2
+    local temp_file="/tmp/check_${filename//\//_}"
+    
+    # Download first 500KB (enough to get many sequence headers)
+    # This should be sufficient to identify the species in most cases
+    if curl -s --max-time 30 --range 0-512000 "${url}" -o "${temp_file}" 2>/dev/null && [ -s "${temp_file}" ]; then
+        # Try to decompress and check for species names
+        if gunzip -c "${temp_file}" 2>/dev/null | head -2000 | grep -qE "(Homo sapiens|Mus musculus)"; then
+            rm -f "${temp_file}"
+            return 0  # Contains target species
+        else
+            rm -f "${temp_file}"
+            return 1  # Does not contain target species
+        fi
+    else
+        # If partial download fails, skip this file (don't download it)
+        rm -f "${temp_file}"
+        return 1
+    fi
+}
+
 # Download based on type
 case ${DOWNLOAD_TYPE} in
+    human_mouse)
+        echo "Downloading RefSeq sequences for Homo sapiens and Mus musculus only (minimal size)..."
+        echo "This will check each file to see if it contains human or mouse sequences..."
+        category="vertebrate_mammalian"
+        echo "Checking files in ${category} category..."
+        
+        # Get list of files and save to temp file to avoid subshell issues
+        curl -s "https://ftp.ncbi.nlm.nih.gov/refseq/release/${category}/" | \
+            grep -oE 'href="[^"]*\.genomic\.fna\.gz"' | \
+            sed 's/href="\(.*\)"/\1/' > /tmp/refseq_files.txt
+        
+        file_count=0
+        download_count=0
+        
+        while read filename; do
+            file_count=$((file_count + 1))
+            url="https://ftp.ncbi.nlm.nih.gov/refseq/release/${category}/${filename}"
+            echo -n "[${file_count}] Checking ${filename}... "
+            
+            if check_file_for_species "${url}" "${filename}"; then
+                echo "✓ contains target species, downloading..."
+                download_count=$((download_count + 1))
+                wget -c -q --show-progress "${url}" || {
+                    echo "Warning: Failed to download ${filename}"
+                }
+            else
+                echo "✗ skipping (no human/mouse data)"
+            fi
+        done < /tmp/refseq_files.txt
+        
+        rm -f /tmp/refseq_files.txt
+        echo ""
+        echo "Summary: Checked ${file_count} files, downloaded ${download_count} files containing human or mouse sequences."
+        ;;
     representative)
         echo "Downloading RefSeq representative sequences (recommended, smaller size)..."
         # Download major categories for representative coverage
@@ -109,7 +168,11 @@ case ${DOWNLOAD_TYPE} in
         ;;
     *)
         echo "Error: Unknown download type '${DOWNLOAD_TYPE}'"
-        echo "Usage: $0 [representative|complete|all]"
+        echo "Usage: $0 [human_mouse|representative|complete|all]"
+        echo "  human_mouse: Download only Homo sapiens and Mus musculus (minimal)"
+        echo "  representative: Download major categories (recommended)"
+        echo "  complete: Download all complete genomic sequences (very large)"
+        echo "  all: Download all genomic sequences (extremely large)"
         echo "Note: For RNA sequences, use build_rna_blast_db.sh instead"
         exit 1
         ;;

@@ -177,3 +177,7 @@ cache
 *.pyc
 *.html
 .gradio
+
+# macOS
+.DS_Store
+**/.DS_Store

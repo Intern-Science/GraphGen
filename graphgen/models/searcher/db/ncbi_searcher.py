@@ -83,6 +83,29 @@ class NCBISearch(BaseSearcher):
             data = data.get(key, default)
         return data
 
+    @staticmethod
+    def _infer_molecule_type_detail(accession: Optional[str], gene_type: Optional[int] = None) -> Optional[str]:
+        """Infer molecule_type_detail from accession prefix or gene type."""
+        if accession:
+            if accession.startswith(("NM_", "XM_")):
+                return "mRNA"
+            elif accession.startswith(("NC_", "NT_")):
+                return "genomic DNA"
+            elif accession.startswith(("NR_", "XR_")):
+                return "RNA"
+            elif accession.startswith("NG_"):
+                return "genomic region"
+        # Fallback: infer from gene type if available
+        if gene_type is not None:
+            gene_type_map = {
+                3: "rRNA",
+                4: "tRNA",
+                5: "snRNA",
+                6: "ncRNA",
+            }
+            return gene_type_map.get(gene_type)
+        return None
+
     def _gene_record_to_dict(self, gene_record, gene_id: str) -> dict:
         """
         Convert an Entrez gene record to a dictionary.
@@ -120,7 +143,7 @@ class NCBISearch(BaseSearcher):
             else None
         )
 
-        # Extract representative accession
+        # Extract representative accession (prefer type 3 = mRNA/transcript)
         representative_accession = next(
             (
                 product.get("Gene-commentary_accession")
@@ -129,6 +152,17 @@ class NCBISearch(BaseSearcher):
             ),
             None,
         )
+        # Fallback: if no type 3 accession, try any available accession
+        # This is needed for genes that don't have mRNA transcripts but have other sequence records
+        if not representative_accession:
+            representative_accession = next(
+                (
+                    product.get("Gene-commentary_accession")
+                    for product in locus.get("Gene-commentary_products", [])
+                    if product.get("Gene-commentary_accession")
+                ),
+                None,
+            )
 
         # Extract function
         function = data.get("Entrezgene_summary") or next(
@@ -169,18 +203,19 @@ class NCBISearch(BaseSearcher):
             "sequence": None,
             "sequence_length": None,
             "gene_id": gene_id,
-            "molecule_type_detail": None,
+            "molecule_type_detail": self._infer_molecule_type_detail(
+                representative_accession, data.get("Entrezgene_type")
+            ),
             "_representative_accession": representative_accession,
         }
 
     def get_by_gene_id(self, gene_id: str, preferred_accession: Optional[str] = None) -> Optional[dict]:
         """Get gene information by Gene ID."""
-        def _extract_from_genbank(result: dict, accession: str):
-            """Enrich result dictionary with sequence and summary information from accession."""
+        def _extract_metadata_from_genbank(result: dict, accession: str):
+            """Extract metadata from GenBank format (title, features, organism, etc.)."""
             with Entrez.efetch(db="nuccore", id=accession, rettype="gb", retmode="text") as handle:
                 record = SeqIO.read(handle, "genbank")
-                result["sequence"] = str(record.seq)
-                result["sequence_length"] = len(record.seq)
+                
                 result["title"] = record.description
                 result["molecule_type_detail"] = (
                     "mRNA" if accession.startswith(("NM_", "XM_")) else
@@ -203,7 +238,20 @@ class NCBISearch(BaseSearcher):
 
                 if not result.get("organism") and 'organism' in record.annotations:
                     result["organism"] = record.annotations['organism']
+            
+            return result
 
+        def _extract_sequence_from_fasta(result: dict, accession: str):
+            """Extract sequence from FASTA format (more reliable than GenBank for CON-type records)."""
+            try:
+                with Entrez.efetch(db="nuccore", id=accession, rettype="fasta", retmode="text") as fasta_handle:
+                    fasta_record = SeqIO.read(fasta_handle, "fasta")
+                    result["sequence"] = str(fasta_record.seq)
+                    result["sequence_length"] = len(fasta_record.seq)
+            except Exception as fasta_exc:
+                logger.warning("Failed to extract sequence from accession %s using FASTA format: %s", accession, fasta_exc)
+                result["sequence"] = None
+                result["sequence_length"] = None
             return result
 
         try:
@@ -214,7 +262,8 @@ class NCBISearch(BaseSearcher):
 
                 result = self._gene_record_to_dict(gene_record, gene_id)
                 if accession := (preferred_accession or result.get("_representative_accession")):
-                    result = _extract_from_genbank(result, accession)
+                    result = _extract_metadata_from_genbank(result, accession)
+                    result = _extract_sequence_from_fasta(result, accession)
 
                 result.pop("_representative_accession", None)
                 return result

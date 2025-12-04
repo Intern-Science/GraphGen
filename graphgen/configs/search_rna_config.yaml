@@ -11,6 +11,4 @@ pipeline:
       data_sources: [rnacentral] # data source for searcher, support: wikipedia, google, uniprot, ncbi, rnacentral
       rnacentral_params:
         use_local_blast: true # whether to use local blast for RNA search
-        local_blast_db: /your_path/refseq_rna_241 # format: /path/to/refseq_rna_${RELEASE}
-        # can also use DNA database with RNA sequences (if already built)
-
+        local_blast_db: rnacentral_ensembl_gencode_YYYYMMDD/ensembl_gencode_YYYYMMDD # path to local BLAST database (without .nhr extension)

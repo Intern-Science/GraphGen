@@ -77,16 +77,14 @@ wget -q "${RELEASE_NOTES_URL}" 2>/dev/null || {
 
 if [ -f "${RELEASE_NOTES}" ]; then
     # Try to extract version from release notes (first line usually contains version info)
-    RELEASE=$(head -1 "${RELEASE_NOTES}" | grep -oE '[0-9]+\.[0-9]+' | head -1 | tr -d '.' || date +%Y%m%d)
-    if [ -z "${RELEASE}" ] || [ "${RELEASE}" = "$(date +%Y%m%d)" ]; then
-        RELEASE=$(date +%Y%m%d)
-        echo "Using date as release identifier: ${RELEASE}"
-    else
-        echo "RNAcentral release: ${RELEASE}"
-    fi
-else
+    RELEASE=$(head -1 "${RELEASE_NOTES}" | grep -oE '[0-9]+\.[0-9]+' | head -1 | tr -d '.')
+fi
+
+if [ -z "${RELEASE}" ]; then
     RELEASE=$(date +%Y%m%d)
     echo "Using date as release identifier: ${RELEASE}"
+else
+    echo "RNAcentral release: ${RELEASE}"
 fi
 
 # Download RNAcentral FASTA file

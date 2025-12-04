@@ -1,1 +1,1 @@
-from .build_kg import build_kg
+from .build_kg_service import BuildKGService

@@ -79,3 +79,5 @@ def init_llm(model_type: str) -> Optional[BaseLLMWrapper]:
     backend = config.pop("backend")
     llm_wrapper = LLMFactory.create_llm_wrapper(backend, config)
     return llm_wrapper
+
+# TODO: use ray serve when loading large models to avoid re-loading in each actor

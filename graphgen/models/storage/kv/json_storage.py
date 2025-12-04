@@ -1,7 +1,7 @@
 import os
 from dataclasses import dataclass
 
-from graphgen.bases.base_storage import BaseKVStorage, BaseListStorage
+from graphgen.bases.base_storage import BaseKVStorage
 from graphgen.utils import load_json, logger, write_json
 
 
@@ -54,41 +54,3 @@ class JsonKVStorage(BaseKVStorage):
     def drop(self):
         if self._data:
             self._data.clear()
-
-
-@dataclass
-class JsonListStorage(BaseListStorage):
-    working_dir: str = None
-    namespace: str = None
-    _data: list = None
-
-    def __post_init__(self):
-        self._file_name = os.path.join(self.working_dir, f"{self.namespace}.json")
-        self._data = load_json(self._file_name) or []
-        logger.info("Load List %s with %d data", self.namespace, len(self._data))
-
-    @property
-    def data(self):
-        return self._data
-
-    def all_items(self) -> list:
-        return self._data
-
-    def index_done_callback(self):
-        write_json(self._data, self._file_name)
-
-    def get_by_index(self, index: int):
-        if index < 0 or index >= len(self._data):
-            return None
-        return self._data[index]
-
-    def append(self, data):
-        self._data.append(data)
-
-    def upsert(self, data: list):
-        left_data = [d for d in data if d not in self._data]
-        self._data.extend(left_data)
-        return left_data
-
-    def drop(self):
-        self._data = []

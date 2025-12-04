@@ -12,7 +12,7 @@ from graphgen.models import (
     RDFReader,
     TXTReader,
 )
-from graphgen.utils import logger
+from graphgen.utils import compute_mm_hash, logger
 
 from .parallel_file_scanner import ParallelFileScanner
 
@@ -110,10 +110,16 @@ def read(
             return ray.data.from_items([])
 
         if len(read_tasks) == 1:
-            logger.info("[READ] Successfully read files from %s", input_path)
-            return read_tasks[0]
-        # len(read_tasks) > 1
-        combined_ds = read_tasks[0].union(*read_tasks[1:])
+            combined_ds = read_tasks[0]
+        else:
+            combined_ds = read_tasks[0].union(*read_tasks[1:])
+
+        combined_ds = combined_ds.map(
+            lambda record: {
+                **record,
+                "_doc_id": compute_mm_hash(record),
+            }
+        )
 
         logger.info("[READ] Successfully read files from %s", input_path)
         return combined_ds

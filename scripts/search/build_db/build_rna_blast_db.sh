@@ -44,12 +44,13 @@ if [ "${DB_SELECTION}" = "list" ]; then
     echo "Available RNAcentral database subsets:"
     echo ""
     echo "Fetching list from RNAcentral FTP..."
-    curl -s "${RNACENTRAL_BY_DB_URL}/" | \
-        grep -oE '<a href="[^"]*\.fasta">' | \
+    listing=$(curl -s "${RNACENTRAL_BY_DB_URL}/")
+    echo "${listing}" | \
+        grep -oE '<a href="[^\"]*\.fasta">' | \
         sed 's/<a href="//;s/">//' | \
         sort | \
         while read db; do
-            size=$(curl -s "${RNACENTRAL_BY_DB_URL}/" | grep -A 1 "${db}" | grep -oE '[0-9.]+[GMK]' | head -1 || echo "unknown")
+            size=$(echo "${listing}" | grep -A 1 "${db}" | grep -oE '[0-9.]+[GMK]' | head -1 || echo "unknown")
             echo "  - ${db%.fasta}: ${size}"
         done
     echo ""

@@ -13,4 +13,4 @@ from .base_storage import (
     StorageNameSpace,
 )
 from .base_tokenizer import BaseTokenizer
-from .datatypes import Chunk, QAPair, Token
+from .datatypes import Chunk, Config, Node, QAPair, Token

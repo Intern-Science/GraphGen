@@ -5,6 +5,9 @@ import tempfile
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
+import ray
+from ray.data import Dataset
+
 from graphgen.bases.base_reader import BaseReader
 from graphgen.models.reader.txt_reader import TXTReader
 from graphgen.utils import logger, pick_device
@@ -62,19 +65,31 @@ class PDFReader(BaseReader):
         self.parser = MinerUParser()
         self.txt_reader = TXTReader()
 
-    def read(self, file_path: str, **override) -> List[Dict[str, Any]]:
-        """
-        file_path
-        **override: override MinerU parameters
-        """
-        pdf_path = Path(file_path).expanduser().resolve()
-        if not pdf_path.is_file():
-            raise FileNotFoundError(pdf_path)
+    def read(
+        self,
+        input_path: Union[str, List[str]],
+        **override,
+    ) -> Dataset:
 
-        kwargs = {**self._default_kwargs, **override}
+        # Ensure input_path is a list
+        if isinstance(input_path, str):
+            input_path = [input_path]
 
-        mineru_result = self._call_mineru(pdf_path, kwargs)
-        return self.filter(mineru_result)
+        paths_ds = ray.data.from_items(input_path)
+
+        def process_pdf(row: Dict[str, Any]) -> List[Dict[str, Any]]:
+            try:
+                pdf_path = row["item"]
+                kwargs = {**self._default_kwargs, **override}
+                return self._call_mineru(Path(pdf_path), kwargs)
+            except Exception as e:
+                logger.error("Failed to process %s: %s", row, e)
+                return []
+
+        docs_ds = paths_ds.flat_map(process_pdf)
+        docs_ds = docs_ds.filter(self._should_keep_item)
+
+        return docs_ds
 
     def _call_mineru(
         self, pdf_path: Path, kwargs: Dict[str, Any]
@@ -161,18 +176,18 @@ class MinerUParser:
 
         base = os.path.dirname(json_file)
         results = []
-        for item in data:
+        for it in data:
             for key in ("img_path", "table_img_path", "equation_img_path"):
-                rel_path = item.get(key)
+                rel_path = it.get(key)
                 if rel_path:
-                    item[key] = str(Path(base).joinpath(rel_path).resolve())
-            if item["type"] == "text":
-                item["content"] = item["text"]
-                del item["text"]
+                    it[key] = str(Path(base).joinpath(rel_path).resolve())
+            if it["type"] == "text":
+                it["content"] = it["text"]
+                del it["text"]
             for key in ("page_idx", "bbox", "text_level"):
-                if item.get(key) is not None:
-                    del item[key]
-            results.append(item)
+                if it.get(key) is not None:
+                    del it[key]
+            results.append(it)
         return results
 
     @staticmethod

@@ -6,12 +6,12 @@ from graphgen.models.splitter.recursive_character_splitter import (
 
 
 class MarkdownTextRefSplitter(RecursiveCharacterSplitter):
-    """Attempts to split the text along Markdown-formatted headings."""
+    """Attempts to chunk the text along Markdown-formatted headings."""
 
     def __init__(self, **kwargs: Any) -> None:
         """Initialize a MarkdownTextRefSplitter."""
         separators = [
-            # First, try to split along Markdown headings (starting with level 2)
+            # First, try to chunk along Markdown headings (starting with level 2)
             "\n#{1,6} ",
             # Note the alternative syntax for headings (below) is not handled here
             # Heading level 2

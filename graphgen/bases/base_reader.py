@@ -1,8 +1,10 @@
 import os
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Union
 
+import pandas as pd
 import requests
+from ray.data import Dataset
 
 
 class BaseReader(ABC):
@@ -14,52 +16,65 @@ class BaseReader(ABC):
         self.text_column = text_column
 
     @abstractmethod
-    def read(self, file_path: str) -> List[Dict[str, Any]]:
+    def read(self, input_path: Union[str, List[str]]) -> Dataset:
         """
         Read data from the specified file path.
 
-        :param file_path: Path to the input file.
-        :return: List of dictionaries containing the data.
+        :param input_path: Path to the input file or list of file paths.
+        :return: Ray Dataset containing the read data.
         """
+
+    def _should_keep_item(self, item: Dict[str, Any]) -> bool:
+        """
+        Determine whether to keep the given item based on the text column.
+
+        :param item: Dictionary representing a data entry.
+        :return: True if the item should be kept, False otherwise.
+        """
+        item_type = item.get("type")
+        assert item_type in [
+            "text",
+            "image",
+            "table",
+            "equation",
+            "protein",
+        ], f"Unsupported item type: {item_type}"
+        if item_type == "text":
+            content = item.get(self.text_column, "").strip()
+            return bool(content)
+        return True
+
+    def _validate_batch(self, batch: pd.DataFrame) -> pd.DataFrame:
+        """
+        Validate data format.
+        """
+        if "type" not in batch.columns:
+            raise ValueError(f"Missing 'type' column. Found: {list(batch.columns)}")
+
+        if "text" in batch["type"].values:
+            if self.text_column not in batch.columns:
+                raise ValueError(
+                    f"Missing '{self.text_column}' column for text documents"
+                )
+
+        return batch
 
     @staticmethod
-    def filter(data: List[dict]) -> List[dict]:
+    def _image_exists(path_or_url: str, timeout: int = 3) -> bool:
         """
-        Filter out entries with empty or missing text in the specified column.
-
-        :param data: List of dictionaries containing the data.
-        :return: Filtered list of dictionaries.
+        Check if an image exists at the given local path or URL.
+        :param path_or_url: Local file path or remote URL of the image.
+        :param timeout: Timeout for remote URL requests in seconds.
+        :return: True if the image exists, False otherwise.
         """
-
-        def _image_exists(path_or_url: str, timeout: int = 3) -> bool:
-            """
-            Check if an image exists at the given local path or URL.
-            :param path_or_url: Local file path or remote URL of the image.
-            :param timeout: Timeout for remote URL requests in seconds.
-            :return: True if the image exists, False otherwise.
-            """
-            if not path_or_url:
-                return False
-            if not path_or_url.startswith(("http://", "https://", "ftp://")):
-                path = path_or_url.replace("file://", "", 1)
-                path = os.path.abspath(path)
-                return os.path.isfile(path)
-            try:
-                resp = requests.head(path_or_url, allow_redirects=True, timeout=timeout)
-                return resp.status_code == 200
-            except requests.RequestException:
-                return False
-
-        filtered_data = []
-        for item in data:
-            if item.get("type") == "text":
-                content = item.get("content", "").strip()
-                if content:
-                    filtered_data.append(item)
-            elif item.get("type") in ("image", "table", "equation"):
-                img_path = item.get("img_path")
-                if _image_exists(img_path):
-                    filtered_data.append(item)
-            else:
-                filtered_data.append(item)
-        return filtered_data
+        if not path_or_url:
+            return False
+        if not path_or_url.startswith(("http://", "https://", "ftp://")):
+            path = path_or_url.replace("file://", "", 1)
+            path = os.path.abspath(path)
+            return os.path.isfile(path)
+        try:
+            resp = requests.head(path_or_url, allow_redirects=True, timeout=timeout)
+            return resp.status_code == 200
+        except requests.RequestException:
+            return False

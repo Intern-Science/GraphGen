@@ -170,3 +170,9 @@ class NetworkXStorage(BaseGraphStorage):
         """
         self._graph.clear()
         logger.info("Graph %s cleared.", self.namespace)
+
+    def reload(self):
+        """
+        Reload the graph from the GraphML file.
+        """
+        self.__post_init__()

@@ -29,6 +29,7 @@ class LLMFactory:
             return HTTPClient(**config)
         if backend in ("openai_api", "azure_openai_api"):
             from graphgen.models.llm.api.openai_client import OpenAIClient
+
             # pass in concrete backend to the OpenAIClient so that internally we can distinguish
             # between OpenAI and Azure OpenAI
             return OpenAIClient(**config, backend=backend)
@@ -79,3 +80,6 @@ def init_llm(model_type: str) -> Optional[BaseLLMWrapper]:
     backend = config.pop("backend")
     llm_wrapper = LLMFactory.create_llm_wrapper(backend, config)
     return llm_wrapper
+
+
+# TODO: use ray serve when loading large models to avoid re-loading in each actor

@@ -1,6 +1,7 @@
-from typing import Any, Dict, List
+from typing import List, Union
 
-import pandas as pd
+import ray
+from ray.data import Dataset
 
 from graphgen.bases.base_reader import BaseReader
 
@@ -13,13 +14,15 @@ class CSVReader(BaseReader):
         - if type is "text", "content" column must be present.
     """
 
-    def read(self, file_path: str) -> List[Dict[str, Any]]:
+    def read(self, input_path: Union[str, List[str]]) -> Dataset:
+        """
+        Read CSV files and return Ray Dataset.
 
-        df = pd.read_csv(file_path)
-        for _, row in df.iterrows():
-            assert "type" in row, f"Missing 'type' column in document: {row.to_dict()}"
-            if row["type"] == "text" and self.text_column not in row:
-                raise ValueError(
-                    f"Missing '{self.text_column}' in document: {row.to_dict()}"
-                )
-        return self.filter(df.to_dict(orient="records"))
+        :param input_path: Path to CSV file or list of CSV files.
+        :return: Ray Dataset containing validated and filtered data.
+        """
+
+        ds = ray.data.read_csv(input_path)
+        ds = ds.map_batches(self._validate_batch, batch_format="pandas")
+        ds = ds.filter(self._should_keep_item)
+        return ds

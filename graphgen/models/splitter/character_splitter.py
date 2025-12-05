@@ -17,7 +17,7 @@ class CharacterSplitter(BaseSplitter):
 
     def split_text(self, text: str) -> List[str]:
         """Split incoming text and return chunks."""
-        # First we naively split the large input into a bunch of smaller ones.
+        # First we naively chunk the large input into a bunch of smaller ones.
         separator = (
             self._separator if self._is_separator_regex else re.escape(self._separator)
         )

@@ -7,7 +7,7 @@ from graphgen.bases.base_splitter import BaseSplitter
 class RecursiveCharacterSplitter(BaseSplitter):
     """Splitting text by recursively look at characters.
 
-    Recursively tries to split by different characters to find one that works.
+    Recursively tries to chunk by different characters to find one that works.
     """
 
     def __init__(
@@ -88,7 +88,7 @@ class ChineseRecursiveTextSplitter(RecursiveCharacterSplitter):
     def _split_text_with_regex_from_end(
         self, text: str, separator: str, keep_separator: bool
     ) -> List[str]:
-        # Now that we have the separator, split the text
+        # Now that we have the separator, chunk the text
         if separator:
             if keep_separator:
                 # The parentheses in the pattern keep the delimiters in the result.

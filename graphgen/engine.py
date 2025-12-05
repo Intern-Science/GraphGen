@@ -119,8 +119,6 @@ class Engine:
             for k, v in func_params.items():
                 if k in valid_keys or has_var_keywords:
                     final_kwargs[k] = v
-                elif has_var_keywords:
-                    final_kwargs[k] = v
             return final_kwargs
 
         if node.op_name not in self.functions:

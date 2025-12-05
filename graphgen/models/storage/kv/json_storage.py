@@ -54,3 +54,7 @@ class JsonKVStorage(BaseKVStorage):
     def drop(self):
         if self._data:
             self._data.clear()
+
+    def reload(self):
+        self._data = load_json(self._file_name) or {}
+        logger.info("Reload KV %s with %d data", self.namespace, len(self._data))

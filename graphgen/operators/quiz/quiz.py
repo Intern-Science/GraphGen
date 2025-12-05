@@ -27,7 +27,7 @@ class QuizService:
         # this operator does not consume any batch data
         # but for compatibility we keep the interface
         _ = batch.to_dict(orient="records")
-
+        self.graph_storage.reload()
         yield from self.quiz()
 
     async def _process_single_quiz(self, item: str) -> dict | None:
